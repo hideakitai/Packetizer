@@ -78,20 +78,6 @@ while (const int size = Serial.available())
         unpacker.pop();
     }
 }
-    
-
-serial.readBytes(serial_buffer, size);
-unpacker.feed(serial_buffer, size);
-
-while (unpacker.available())
-{
-    Message msg;
-    unpacker >> msg;
-  
-    // do something with message
-  
-    unpacker.pop();
-}
 ```
 
 ### Footer
@@ -99,15 +85,15 @@ while (unpacker.available())
 set at constructor
 
 ```
-MsgPacketizer::Reader reader; // default = CRC8
-MsgPacketizer::Reader reader(Packetizer::Checker::None);
-MsgPacketizer::Reader reader(Packetizer::Checker::Sum);
-MsgPacketizer::Reader reader(Packetizer::Checker::CRC8);
+Packetizer::Reader reader; // default = CRC8
+Packetizer::Reader reader(Packetizer::Checker::None);
+Packetizer::Reader reader(Packetizer::Checker::Sum);
+Packetizer::Reader reader(Packetizer::Checker::CRC8);
 
-MsgPacketizer::Sender sender; // default = CRC8
-MsgPacketizer::Sender sender(Packetizer::Checker::None);
-MsgPacketizer::Sender sender(Packetizer::Checker::Sum);
-MsgPacketizer::Sender sender(Packetizer::Checker::CRC8);
+Packetizer::Sender sender; // default = CRC8
+Packetizer::Sender sender(Packetizer::Checker::None);
+Packetizer::Sender sender(Packetizer::Checker::Sum);
+Packetizer::Sender sender(Packetizer::Checker::CRC8);
 ```
 
 or set after constructor
