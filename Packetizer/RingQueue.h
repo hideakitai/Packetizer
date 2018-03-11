@@ -1,6 +1,9 @@
 #pragma once
 
-template<typename T, typename size_type = uint8_t>
+#ifndef RINGQUEUE_H
+#define RINGQUEUE_H
+
+template<typename T, typename size_type = uint32_t>
 class RingQueue
 {
 public:
@@ -67,3 +70,5 @@ private:
     const    size_type size_;
     T* queue_;
 };
+
+#endif
