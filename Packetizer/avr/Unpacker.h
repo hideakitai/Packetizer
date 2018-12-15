@@ -1,24 +1,25 @@
 #pragma once
 
-#include "CRC.h"
-#include <queue>
+#include "../CRC.h"
+#include "RingQueue.h"
 
 namespace Packetizer
 {
-    class Unpacker
+    template <uint8_t READ_BUFFER_SIZE = 128>
+    class Unpacker_
     {
     public:
 
-        Unpacker(Checker m = Checker::CRC8)
+        Unpacker_(Checker m = Checker::CRC8)
         : r_buffer(), state(State::Start), b_escape(false) , sum(0), count(0), mode(m)
         {}
 
-        ~Unpacker() {}
+        ~Unpacker_() {}
 
         size_t available() { return _readBuffer.size(); }
         uint8_t index() { return _readBuffer.front().index; }
         uint8_t size() { return _readBuffer.front().size; }
-        uint8_t* data() { return _readBuffer.front().sbuf.data(); }
+        uint8_t* data() { return _readBuffer.front().sbuf; }
 
         void setCheckMode(Checker m) { mode = m; }
 
@@ -61,7 +62,7 @@ namespace Packetizer
                 }
                 case State::Data:
                 {
-                    r_buffer.sbuf.push_back(data);
+                    r_buffer.write(&data, 1);
                     if (++count >= r_buffer.size) state = State::Checksum;
                     break;
                 }
@@ -73,7 +74,7 @@ namespace Packetizer
                     }
                     else if (mode == Checker::CRC8)
                     {
-                        uint8_t crc8 = CRC::getCRC8((uint8_t*)r_buffer.sbuf.data(), r_buffer.sbuf.size());
+                        uint8_t crc8 = CRC::getCRC8((uint8_t*)r_buffer.sbuf, r_buffer.size);
                         if (crc8 == data) _readBuffer.push(r_buffer);
                     }
                     reset();
@@ -122,9 +123,16 @@ namespace Packetizer
         {
             uint8_t index;
             uint8_t size;
-            std::vector<uint8_t> sbuf;
+            uint8_t sbuf[READ_BUFFER_SIZE];
+            uint8_t count;
 
-            void clear() { index = size = 0; sbuf.clear(); }
+            void write(uint8_t* data, uint8_t size)
+            {
+                memcpy(sbuf + count, data, size);
+                count += size;
+            }
+
+            void clear() { index = size = count = 0; memset(sbuf, 0, READ_BUFFER_SIZE); }
         };
 
         Buffer r_buffer;
@@ -136,7 +144,8 @@ namespace Packetizer
         uint8_t count;
 
         Checker mode;
-        std::queue<Buffer> _readBuffer;
+        RingQueue<Buffer> _readBuffer {READ_BUFFER_SIZE};
     };
 
+    using Unpacker = Unpacker_<128>;
 }

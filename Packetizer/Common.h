@@ -9,8 +9,5 @@ namespace Packetizer
     const uint8_t ESCAPE_BYTE = 0x7D;
     const uint8_t ESCAPE_MASK = 0x20;
     const uint16_t ESCAPE_MARKER = 0xFFFF;
-
-    const uint16_t SEND_BUFFER_SIZE = 128;
-    const uint16_t READ_BUFFER_SIZE = 128;
 }
 
