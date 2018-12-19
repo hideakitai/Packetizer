@@ -5,7 +5,7 @@
 
 namespace Packetizer
 {
-    template <uint8_t READ_BUFFER_SIZE = 128>
+    template <uint8_t BUFFER_QUEUE_SIZE, uint8_t PACKET_DATA_SIZE>
     class Unpacker_
     {
     public:
@@ -119,11 +119,12 @@ namespace Packetizer
 
     protected:
 
+        template <size_t BUFFER_SIZE>
         struct Buffer
         {
             uint8_t index;
             uint8_t size;
-            uint8_t sbuf[READ_BUFFER_SIZE];
+            uint8_t sbuf[BUFFER_SIZE];
             uint8_t count;
 
             void write(uint8_t* data, uint8_t size)
@@ -132,10 +133,10 @@ namespace Packetizer
                 count += size;
             }
 
-            void clear() { index = size = count = 0; memset(sbuf, 0, READ_BUFFER_SIZE); }
+            void clear() { index = size = count = 0; memset(sbuf, 0, BUFFER_SIZE); }
         };
 
-        Buffer r_buffer;
+        Buffer<PACKET_DATA_SIZE> r_buffer;
 
         State state;
         bool b_escape;
@@ -144,8 +145,8 @@ namespace Packetizer
         uint8_t count;
 
         Checker mode;
-        RingQueue<Buffer> _readBuffer {READ_BUFFER_SIZE};
+        RingQueue<Buffer<PACKET_DATA_SIZE>, BUFFER_QUEUE_SIZE> _readBuffer;
     };
 
-    using Unpacker = Unpacker_<128>;
+    using Unpacker = Unpacker_<2, 32>;
 }

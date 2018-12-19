@@ -12,13 +12,13 @@ binary data packer / unpacker
 
 ## Packet Protocol
 
-- 1 byte header 
+- 1 byte header
 - 1 byte index
 - 1 byte size ( = N)
 - N byte data (arbitrary binary arrays)
 - 1 byte footer (crc8, simple some, or none)
 
-1 byte index can be used to identify the type of data, or as you like. 
+1 byte index can be used to identify the type of data, or as you like.
 
 You can also choose the type of footer from None / Simple Sum / CRC8.
 
@@ -56,7 +56,7 @@ while (const int size = Serial.available())
 {
     uint8_t data[size];
     Serial.readBytes((char*)data, size);
-    
+
     unpacker.feed(data, size);
 
     while (unpacker.available())
@@ -85,28 +85,48 @@ while (const int size = Serial.available())
 set at constructor
 
 ```
-Packetizer::Reader reader; // default = CRC8
-Packetizer::Reader reader(Packetizer::Checker::None);
-Packetizer::Reader reader(Packetizer::Checker::Sum);
-Packetizer::Reader reader(Packetizer::Checker::CRC8);
+Packetizer::Packet packer; // default = CRC8
+Packetizer::Packer packer(Packetizer::Checker::None);
+Packetizer::Packer packer(Packetizer::Checker::Sum);
+Packetizer::Packer packer(Packetizer::Checker::CRC8);
 
-Packetizer::Sender sender; // default = CRC8
-Packetizer::Sender sender(Packetizer::Checker::None);
-Packetizer::Sender sender(Packetizer::Checker::Sum);
-Packetizer::Sender sender(Packetizer::Checker::CRC8);
+Packetizer::Unpacker unpacker; // default = CRC8
+Packetizer::Unpacker unpacker(Packetizer::Checker::None);
+Packetizer::Unpacker unpacker(Packetizer::Checker::Sum);
+Packetizer::Unpacker unpacker(Packetizer::Checker::CRC8);
 ```
 
 or set after constructor
 
 ```c++
-Packetizer::Reader::setCheckMode(Packetizer::Checker::None);
-Packetizer::Reader::setCheckMode(Packetizer::Checker::Sum);
-Packetizer::Reader::setCheckMode(Packetizer::Checker::CRC8); // default
+Packetizer::Packer::setCheckMode(Packetizer::Checker::None);
+Packetizer::Packer::setCheckMode(Packetizer::Checker::Sum);
+Packetizer::Packer::setCheckMode(Packetizer::Checker::CRC8); // default
 
-Packetizer::Sender::setCheckMode(Packetizer::Checker::None);
-Packetizer::Sender::setCheckMode(Packetizer::Checker::Sum);
-Packetizer::Sender::setCheckMode(Packetizer::Checker::CRC8); // default
+Packetizer::Unpacker::setCheckMode(Packetizer::Checker::None);
+Packetizer::Unpacker::setCheckMode(Packetizer::Checker::Sum);
+Packetizer::Unpacker::setCheckMode(Packetizer::Checker::CRC8); // default
 ```
+
+### Memory Management for AVR Boards
+
+For AVR boards like Arduino Uno, you can manage required packet data size and buffering queue size.
+Default packet data size is 32 byte, and buffering queue size is 2.
+So internally `Packetizer::Packer` and `Packetizer::Unpacker` is defined as:
+
+``` c++
+using Packer = Packer_<32>;
+using Unpacker = Unpacker_<2, 32>;
+```
+
+If you want to use them in larger or smaller data / queue size, define instances like:
+
+``` c++
+Packetzier::Packer_<128> packer; // you can send 128 byte data
+Packetzier::Unpacker_<4, 128> packer; // you can receive 128 byte data and buffer 4 packets
+```
+
+There is no option for ARM boards (internally STL is used to buffer packets).
 
 
 ## License

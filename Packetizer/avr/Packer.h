@@ -5,7 +5,7 @@
 
 namespace Packetizer
 {
-    template <uint8_t SEND_BUFFER_SIZE = 128>
+    template <uint8_t PACKET_DATA_SIZE>
     class Packer_
     {
     public:
@@ -22,7 +22,7 @@ namespace Packetizer
 
         const uint8_t* pack(uint8_t* sbuf, uint8_t size, const uint8_t& index = 0)
         {
-            memset(pack_buffer, 0, SEND_BUFFER_SIZE);
+            memset(pack_buffer, 0, PACKET_DATA_SIZE);
             count = 0;
 
             append((uint8_t)START_BYTE, false);
@@ -50,7 +50,7 @@ namespace Packetizer
         {
             if (isEscape)
             {
-                RingQueue<uint16_t> escapes {SEND_BUFFER_SIZE};
+                RingQueue<uint16_t, PACKET_DATA_SIZE> escapes;
                 for (size_t i = 0; i < size; ++i)
                     if ((data[i] == START_BYTE) || (data[i] == ESCAPE_BYTE))
                         escapes.push(i);
@@ -103,9 +103,9 @@ namespace Packetizer
 
         Checker mode;
 
-        uint8_t pack_buffer[SEND_BUFFER_SIZE];
+        uint8_t pack_buffer[PACKET_DATA_SIZE];
         size_t count;
     };
 
-    using Packer = Packer_<128>;
+    using Packer = Packer_<32>;
 }
