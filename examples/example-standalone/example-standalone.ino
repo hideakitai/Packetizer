@@ -8,26 +8,37 @@ Packetizer::Unpacker unpacker;
 uint8_t test_array_0[3] = {0, 1, 2};
 uint8_t test_array_1[5] = {0x7C, 0x7D, 0x7E, 0x7F, 0x80};
 uint8_t test_array_2[8] = {210, 211, 222, 15, 126, 200, 31, 91};
+uint8_t test_array_3[3] = {3, 4, 5};
+uint8_t test_array_4[11] = {10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+uint8_t test_array_5[11] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 125};
+
+void callback(const uint8_t* data, uint8_t size)
+{
+    Serial.print("size  : ");
+    Serial.println(size);
+
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < size; ++i)
+    {
+        Serial.print(data[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+}
 
 void setup()
 {
     Serial.begin(115200);
     delay(5000);
 
-    // set check mode if you need, defualt is CRC8
-    // packer.setCheckMode(Packetizer::Checker::None);
-    // unpacker.setCheckMode(Packetizer::Checker::None);
-    // packer.setCheckMode(Packetizer::Checker::Sum);
-    // unpacker.setCheckMode(Packetizer::Checker::Sum);
-    // packer.setCheckMode(Packetizer::Checker::CRC8);
-    // unpacker.setCheckMode(Packetizer::Checker::CRC8);
+    // -----------------------------------------------------------------------
 
     Serial.println("test 1");
     Serial.println("---------- packing data ----------");
     Serial.print("data : ");
     for (uint8_t i = 0; i < sizeof(test_array_0); ++i)
     {
-        Serial.print(test_array_0[i]);
+        Serial.print(test_array_0[i], HEX);
         Serial.print(" ");
     }
     Serial.println();
@@ -39,7 +50,7 @@ void setup()
     Serial.print("data : ");
     for (uint8_t i = 0; i < packer.size(); ++i)
     {
-        Serial.print(packer.data()[i]);
+        Serial.print(packer.data()[i], HEX);
         Serial.print(" ");
     }
     Serial.println();
@@ -60,13 +71,15 @@ void setup()
         Serial.print("data : ");
         for (uint8_t i = 0; i < unpacker.size(); ++i)
         {
-            Serial.print(unpacker.data()[i]);
+            Serial.print(unpacker.data()[i], HEX);
             Serial.print(" ");
         }
         Serial.println();
 
         unpacker.pop();
     }
+
+    // -----------------------------------------------------------------------
 
     Serial.println();
     Serial.println("test 2");
@@ -75,19 +88,19 @@ void setup()
     Serial.print("data : ");
     for (uint8_t i = 0; i < sizeof(test_array_1); ++i)
     {
-        Serial.print(test_array_1[i]);
+        Serial.print(test_array_1[i], HEX);
         Serial.print(" ");
     }
     Serial.println();
 
-    packer.pack(test_array_1, sizeof(test_array_1));
+    packer.pack(test_array_1, sizeof(test_array_1), 1);
 
 
     Serial.println("---------- packed data ----------");
     Serial.print("data : ");
     for (uint8_t i = 0; i < packer.size(); ++i)
     {
-        Serial.print(packer.data()[i]);
+        Serial.print(packer.data()[i], HEX);
         Serial.print(" ");
     }
     Serial.println();
@@ -109,13 +122,15 @@ void setup()
         Serial.print("data : ");
         for (uint8_t i = 0; i < unpacker.size(); ++i)
         {
-            Serial.print(unpacker.data()[i]);
+            Serial.print(unpacker.data()[i], HEX);
             Serial.print(" ");
         }
         Serial.println();
 
         unpacker.pop();
     }
+
+    // -----------------------------------------------------------------------
 
     Serial.println();
     Serial.println("test 3");
@@ -124,19 +139,71 @@ void setup()
     Serial.print("data : ");
     for (uint8_t i = 0; i < sizeof(test_array_2); ++i)
     {
-        Serial.print(test_array_2[i]);
+        Serial.print(test_array_2[i], HEX);
         Serial.print(" ");
     }
     Serial.println();
 
-    packer.pack(test_array_2, sizeof(test_array_2));
+    packer.pack(test_array_2, sizeof(test_array_2), 2);
 
 
     Serial.println("---------- packed data ----------");
     Serial.print("data : ");
     for (uint8_t i = 0; i < packer.size(); ++i)
     {
-        Serial.print(packer.data()[i]);
+        Serial.print(packer.data()[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+
+
+    Serial.println("---------- unpacked results ----------");
+
+    unpacker.feed(packer.data(), packer.size());
+
+    while (unpacker.available())
+    {
+        Serial.print("index : ");
+        Serial.println(unpacker.index());
+
+        Serial.print("size  : ");
+        Serial.println(unpacker.size());
+
+        Serial.print("data : ");
+        for (uint8_t i = 0; i < unpacker.size(); ++i)
+        {
+            Serial.print(unpacker.data()[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+
+        unpacker.pop();
+    }
+
+    // -----------------------------------------------------------------------
+
+    Serial.println();
+    Serial.println("test 4");
+    Serial.println("---------- packing data ----------");
+
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < sizeof(test_array_3); ++i)
+    {
+        Serial.print(test_array_3[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    packer.init(3);
+    packer.pack(test_array_3[0], test_array_3[1], test_array_3[2]);
+
+
+    Serial.println("---------- packed data ----------");
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < packer.size(); ++i)
+    {
+        Serial.print(packer.data()[i], HEX);
         Serial.print(" ");
     }
     Serial.println();
@@ -157,69 +224,227 @@ void setup()
         Serial.print("data : ");
         for (uint8_t i = 0; i < unpacker.size(); ++i)
         {
-            Serial.print(unpacker.data()[i]);
+            Serial.print(unpacker.data()[i], HEX);
             Serial.print(" ");
         }
         Serial.println();
 
         unpacker.pop();
     }
+
+
+    // -----------------------------------------------------------------------
+
+    Serial.println();
+    Serial.println("test 5");
+    Serial.println("---------- packing data ----------");
+
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < sizeof(test_array_4); ++i)
+    {
+        Serial.print(test_array_4[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    packer.init(0x7D);
+    packer << test_array_4[0] << test_array_4[1] << test_array_4[2] << test_array_4[3] << test_array_4[4];
+    packer << test_array_4[5] << test_array_4[6] << test_array_4[7];
+    packer << test_array_4[8] << test_array_4[9] << test_array_4[10] << Packetizer::endp();
+
+
+    Serial.println("---------- packed data ----------");
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < packer.size(); ++i)
+    {
+        Serial.print(packer.data()[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+
+    Serial.println("---------- unpacked results ----------");
+
+    unpacker.feed(packer.data(), packer.size());
+
+    while (unpacker.available())
+    {
+        Serial.print("index : ");
+        Serial.println(unpacker.index());
+
+        Serial.print("size  : ");
+        Serial.println(unpacker.size());
+
+        Serial.print("data : ");
+        for (uint8_t i = 0; i < unpacker.size(); ++i)
+        {
+            Serial.print(unpacker.data()[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+
+        unpacker.pop();
+    }
+
+    // -----------------------------------------------------------------------
+
+    Serial.println();
+    Serial.println("test 6");
+    Serial.println("---------- packing data ----------");
+
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < sizeof(test_array_4); ++i)
+    {
+        Serial.print(test_array_4[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    packer.init(0x7E);
+    packer << test_array_4[0] << test_array_4[1] << test_array_4[2] << test_array_4[3] << test_array_4[4];
+    packer << test_array_4[5] << test_array_4[6] << test_array_4[7];
+    packer << test_array_4[8] << test_array_4[9] << test_array_4[10] << Packetizer::endp();
+
+
+    Serial.println("---------- packed data ----------");
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < packer.size(); ++i)
+    {
+        Serial.print(packer.data()[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    unpacker.subscribe(0x7E,
+        [&](const uint8_t* data, uint8_t size)
+        {
+            Serial.print("size  : ");
+            Serial.println(size);
+
+            Serial.print("data : ");
+            for (uint8_t i = 0; i < unpacker.size(); ++i)
+            {
+                Serial.print(data[i], HEX);
+                Serial.print(" ");
+            }
+            Serial.println();
+        }
+    );
+
+    Serial.println("---------- unpacked results ----------");
+
+    unpacker.feed(packer.data(), packer.size());
+
+
+    // -----------------------------------------------------------------------
+
+    Serial.println();
+    Serial.println("test 7");
+    Serial.println("---------- packing data ----------");
+
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < sizeof(test_array_4); ++i)
+    {
+        Serial.print(test_array_4[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    packer.init(0x7F);
+    packer << test_array_4[0] << test_array_4[1] << test_array_4[2] << test_array_4[3] << test_array_4[4];
+    packer << test_array_4[5] << test_array_4[6] << test_array_4[7];
+    packer << test_array_4[8] << test_array_4[9] << test_array_4[10] << Packetizer::endp();
+
+
+    Serial.println("---------- packed data ----------");
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < packer.size(); ++i)
+    {
+        Serial.print(packer.data()[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    unpacker.subscribe(0x7F, callback);
+
+    Serial.println("---------- unpacked results ----------");
+
+    unpacker.feed(packer.data(), packer.size());
+
+
+    // -----------------------------------------------------------------------
+
+    // Serial.println();
+    // Serial.println("test 8");
+    // Serial.println("---------- packing data ----------");
+
+    // Serial.print("data : ");
+    // for (uint8_t i = 0; i < sizeof(test_array_4); ++i)
+    // {
+    //     Serial.print(test_array_4[i], HEX);
+    //     Serial.print(" ");
+    // }
+    // Serial.println();
+
+    // packer.init();
+    // packer << test_array_4[0] << test_array_4[1] << test_array_4[2] << test_array_4[3] << test_array_4[4];
+    // packer << test_array_4[5] << test_array_4[6] << test_array_4[7];
+    // packer << test_array_4[8] << test_array_4[9] << test_array_4[10] << Packetizer::endp();
+
+
+    // Serial.println("---------- packed data ----------");
+    // Serial.print("data : ");
+    // for (uint8_t i = 0; i < packer.size(); ++i)
+    // {
+    //     Serial.print(packer.data()[i], HEX);
+    //     Serial.print(" ");
+    // }
+    // Serial.println();
+
+    // unpacker.subscribe(0x00, callback);
+
+    // Serial.println("---------- unpacked results ----------");
+
+    // unpacker.feed(packer.data(), packer.size());
+
+
+    // -----------------------------------------------------------------------
+
+    Serial.println();
+    Serial.println("test 9");
+    Serial.println("---------- packing data ----------");
+
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < sizeof(test_array_5); ++i)
+    {
+        Serial.print(test_array_5[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    packer.init();
+    packer << test_array_5[0] << test_array_5[1] << test_array_5[2] << test_array_5[3] << test_array_5[4];
+    packer << test_array_5[5] << test_array_5[6] << test_array_5[7];
+    packer << test_array_5[8] << test_array_5[9] << test_array_5[10] << Packetizer::endp();
+
+
+    Serial.println("---------- packed data ----------");
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < packer.size(); ++i)
+    {
+        Serial.print(packer.data()[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    unpacker.subscribe(0x00, callback);
+
+    Serial.println("---------- unpacked results ----------");
+
+    unpacker.feed(packer.data(), packer.size());
+
 }
 
 void loop()
 {
-#ifndef TEST_NO_SERIAL
-    while (const int size = Serial.available())
-    {
-        uint8_t data[size];
-        Serial.readBytes((char*)data, size);
-        unpacker.feed(data, size);
-
-        while (unpacker.available())
-        {
-            switch(unpacker.index())
-            {
-                case 0:
-                {
-                    int id;
-                    unpacker >> id;
-                    // or
-                    // int id = unpacker.deserialize<int>();
-
-                    // return same message
-                    packer.pack(id, unpacker.index());
-                    break;
-                }
-                case 1:
-                {
-                    float time;
-                    unpacker >> time;
-                    // or
-                    // float time = unpacker.deserialize<float>();
-
-                    // return same message
-                    packer.pack(time, unpacker.index());
-                    break;
-                }
-                case 2:
-                {
-                    Message m;
-                    unpacker >> m;
-                    // or
-                    // Message m = unpacker.deserialize<Message>();
-
-                    // return same message
-                    packer.pack(m, unpacker.index());
-                    break;
-                }
-                default:
-                {
-                    break;
-                }
-            }
-            Serial.write(packer.data(), packer.size());
-            unpacker.pop();
-        }
-    }
-#endif
 }

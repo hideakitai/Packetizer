@@ -1,76 +1,46 @@
-inlets = 3;
-outlets = 1;
+const maxApi = require('max-api');
+const crc = require('./crc.js');
 
-packetizer_index = 0;
-packetizer_check = 2; // 0: None, 1: Sum, 2: CRC8
+const START_BYTE  = 0x7D;
+const FINISH_BYTE = 0x7E;
+const ESCAPE_BYTE = 0x7F;
+const ESCAPE_MASK = 0x20;
 
-function getCRC8(args)
+let index = 0;
+
+function isEscapeByte(arg) { return (arg >= START_BYTE) &&(arg <= ESCAPE_BYTE); }
+
+maxApi.addHandler('index', (i) => { index = i; });
+
+maxApi.addHandler('data', (...args) =>
 {
-    var result = 0xFF;
-
-    var size = args.length;
-
-    var count = 0;
-    for (result = 0 ; size != 0 ; size--)
-    {
-        result ^= args[count];
-
-        for (var i = 0 ; i < 8; i++)
-        {
-            if (result & 0x80)
-            {
-                result <<= 1; result ^= 0x85; // x8 + x7 + x2 + x0
-            }
-            else
-            {
-                result <<= 1;
-            }
+    args.forEach((v, i) => {
+        if (isEscapeByte(v)) {
+            args.splice(i, 1, v ^ ESCAPE_MASK);
+            args.splice(i, 0, ESCAPE_BYTE);
         }
-        count++;
-    }
-    return result;
-}
+    });
 
-function msg_int(a)
-{
-    const START_BYTE = 0x7E;
-    const ESCAPE_BYTE = 0x7D;
-    const ESCAPE_MASK = 0x20;
-    const ESCAPE_MARKER = 0xFFFF;
-
-    const SEND_BUFFER_SIZE = 128;
-    const READ_BUFFER_SIZE = 128;
-
-    var args = arrayfromargs(messagename, arguments);
-    var outs = [];
-
-    if (this.inlet === 1) packetizer_index = arguments[0];
-    if (this.inlet === 2) packetizer_check = arguments[0];
-
-    // TODO: replace crc
-    if (packetizer_check === 2)
+    if (isEscapeByte(index))
     {
-        args.push(getCRC8(args) & 0xFF);
-        args.unshift(args.length - 1);
+        args.unshift(index ^ ESCAPE_MASK);
+        args.unshift(ESCAPE_BYTE);
     }
     else
     {
-        args.unshift(args.length);
+        args.unshift(index);
     }
-
-    args.unshift(packetizer_index);
     args.unshift(START_BYTE);
-
-    if (packetizer_check === 1)
+    let crc8 = crc.crc8(args);
+    if (isEscapeByte(crc8))
     {
-        var sum = 0;
-        for (var i = 0; i < args.length; ++i) sum += args[i];
+        args.push(ESCAPE_BYTE);
+        args.push(crc8 ^ ESCAPE_MASK);
     }
-    else if (packetizer_check === 2)
+    else
     {
-        // TODO: replace crc to this
-        // args.push(getCRC8(args) & 0xFF);
+        args.push(crc8);
     }
-
-    outlet(0, args);
-}
+    args.push(FINISH_BYTE);
+    maxApi.outlet(args);
+});
