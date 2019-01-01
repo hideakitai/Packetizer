@@ -20,12 +20,28 @@ public:
         if (size() == 1) clear();
         else head_++;
     };
-    inline void push(T data)
+    inline void pop_back()
+    {
+        if (size() == 0) return;
+        if (size() == 1) clear();
+        else tail_--;
+    };
+    inline void push(const T& data)
     {
         queue_[(tail_++) % SIZE] = data;
         if      (size() > SIZE) head_++;
     };
-    inline void push_back(T data)
+    inline void push(T&& data)
+    {
+        queue_[(tail_++) % SIZE] = data;
+        if      (size() > SIZE) head_++;
+    };
+    inline void push_back(const T& data)
+    {
+        queue_[(tail_++) % SIZE] = data;
+        if      (size() > SIZE) head_++;
+    };
+    inline void push_back(T&& data)
     {
         queue_[(tail_++) % SIZE] = data;
         if      (size() > SIZE) head_++;
@@ -76,11 +92,31 @@ public:
         return p;
     }
 
+    inline void resize(size_t sz)
+    {
+        size_t s = size();
+        if (sz > size())
+        {
+            for (size_t i = 0; i < sz - s; ++i) push(T());
+        }
+        else if (sz < size())
+        {
+            for (size_t i = 0; i < s - sz; ++i) pop();
+        }
+    }
+
+    inline void assign(const T* const first, const T* const end)
+    {
+        clear();
+        const char* p = first;
+        while (p != end) push(*p++);
+    }
+
 private:
 
+    T queue_[SIZE];
     volatile size_t head_ {0};
     volatile size_t tail_ {0};
-    T queue_[SIZE];
 };
 
 #endif // RINGBUFFER_H
