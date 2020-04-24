@@ -2,36 +2,41 @@
 #ifndef ARDUINO_PACKETIZER_H
 #define ARDUINO_PACKETIZER_H
 
-#ifdef TEENSYDUINO
-#ifndef TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
-#define TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
-extern "C"
-{
-    int _getpid() { return -1; }
-    int _kill(int pid, int sig) { return -1; }
-    int _write() { return -1; }
-    void *__exidx_start __attribute__((__visibility__ ("hidden")));
-    void *__exidx_end __attribute__((__visibility__ ("hidden")));
-}
-// DIRTY for TEENSYDUINO compile...
-// copied from https://github.com/gcc-mirror/
-namespace std
-{
-    void __throw_bad_alloc() { _GLIBCXX_THROW_OR_ABORT(bad_alloc()); }
-    void __throw_length_error(const char* __s __attribute__((unused))) { _GLIBCXX_THROW_OR_ABORT(length_error(_(__s))); }
-    void __throw_bad_function_call() { _GLIBCXX_THROW_OR_ABORT(bad_function_call()); }
-    // void _Rb_tree_decrement(std::_Rb_tree_node_base* a) {}
-    // void _Rb_tree_insert_and_rebalance(bool, std::_Rb_tree_node_base*, std::_Rb_tree_node_base*, std::_Rb_tree_node_base&) {}
-}
-#endif // TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
-#endif // TEENSYDUINO
+// #ifdef TEENSYDUINO
+// #ifndef TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
+// #define TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
+// extern "C"
+// {
+//     // int _getpid() { return -1; }
+//     // int _kill(int pid, int sig) { return -1; }
+//     // int _write() { return -1; }
+//     // void *__exidx_start __attribute__((__visibility__ ("hidden")));
+//     // void *__exidx_end __attribute__((__visibility__ ("hidden")));
+//     int _getpid();// { return -1; }
+//     int _kill(int pid, int sig);// { return -1; }
+//     int _write();// { return -1; }
+//     void *__exidx_start __attribute__((__visibility__ ("hidden")));
+//     void *__exidx_end __attribute__((__visibility__ ("hidden")));
+// }
+// // DIRTY for TEENSYDUINO compile...
+// // copied from https://github.com/gcc-mirror/
+// namespace std
+// {
+//     void __throw_bad_alloc();// { _GLIBCXX_THROW_OR_ABORT(bad_alloc()); }
+//     void __throw_length_error(const char* __s __attribute__((unused)));// { _GLIBCXX_THROW_OR_ABORT(length_error(_(__s))); }
+//     void __throw_bad_function_call();// { _GLIBCXX_THROW_OR_ABORT(bad_function_call()); }
+//     // void _Rb_tree_decrement(std::_Rb_tree_node_base* a) {}
+//     // void _Rb_tree_insert_and_rebalance(bool, std::_Rb_tree_node_base*, std::_Rb_tree_node_base*, std::_Rb_tree_node_base&) {}
+// }
+// #endif // TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
+// #endif // TEENSYDUINO
 
 
 #if defined(__AVR__) || defined(ARDUINO_spresense_ast)
 #include "RingBuffer.h"
 #else
 #include <vector>
-#include <queue>
+#include <deque>
 // #include <map>
 #include <functional>
 #endif // __AVR__
@@ -48,7 +53,7 @@ namespace packetizer {
 
     struct endp {}; // for end of packet sign
 
-    uint8_t crc8(const uint8_t* data, size_t size)
+    static uint8_t crc8(const uint8_t* data, size_t size)
     {
         uint8_t result = 0xFF;
         for (result = 0; size != 0; --size)
@@ -84,7 +89,7 @@ namespace packetizer {
     class Encoder_
     {
         using Buffer = std::vector<uint8_t>;
-        using EscapeBuffer = std::queue<uint8_t>;
+        using EscapeBuffer = std::deque<uint8_t>;
 
 #endif
 
@@ -154,7 +159,7 @@ namespace packetizer {
                 EscapeBuffer escapes;
                 for (uint8_t i = 0; i < size; ++i)
                     if (is_escape_byte(data[i]))
-                        escapes.push(i);
+                        escapes.push_back(i);
 
                 if (escapes.empty())
                     for (uint8_t i = 0; i < size; ++i) buffer.push_back(data[i]);
@@ -167,7 +172,7 @@ namespace packetizer {
                         append(data + start, idx - start);
                         append(data[idx], true);
                         start = idx + 1;
-                        escapes.pop();
+                        escapes.pop_front();
                     }
                     if (start < size) append(data + start, size - start);
                 }
@@ -220,7 +225,7 @@ namespace packetizer {
         using Buffer = std::vector<uint8_t>;
         using callback_t = std::function<void(const uint8_t* data, const uint8_t size)>;
         struct Map { uint8_t key; callback_t func; };
-        using PacketQueue = std::queue<Buffer>;
+        using PacketQueue = std::deque<Buffer>;
         using CallbackMap = std::vector<Map>;
 
 #endif // __AVR__
@@ -241,23 +246,33 @@ namespace packetizer {
     public:
 
         using CallbackType = callback_t;
-        // TODO: std::map / unordered_map compile error for teensy in Arduino IDE...
-        void subscribe(const uint8_t index, callback_t func) { callbacks.push_back({index, func}); }
+
+        void subscribe(const uint8_t index, const callback_t& func)
+        {
+            callbacks.emplace_back(Map{index, func});
+        }
 
         size_t available() const { return packets.size(); }
+
         uint8_t index() const { return packets.front()[INDEX_OFFSET_INDEX]; }
         uint8_t size() const { return packets.front().size() - N_HEADER_FOOTER_SIZE; }
         uint8_t data(const uint8_t i) const { return data()[i]; }
         const uint8_t* data() const { return packets.front().data() + INDEX_OFFSET_DATA; }
 
-        void pop() { packets.pop(); }
+        uint8_t index_back() const { return packets.back()[INDEX_OFFSET_INDEX]; }
+        uint8_t size_back() const { return packets.back().size() - N_HEADER_FOOTER_SIZE; }
+        uint8_t data_back(const uint8_t i) const { return data_back()[i]; }
+        const uint8_t* data_back() const { return packets.back().data() + INDEX_OFFSET_DATA; }
 
-        void feed(const uint8_t* const data, const size_t size)
+        void pop() { packets.pop_front(); }
+        void pop_back() { packets.pop_back(); }
+
+        void feed(const uint8_t* const data, const size_t size, bool b_exec_cb = true)
         {
-            for (size_t i = 0; i < size; ++i) feed(data[i]);
+            for (size_t i = 0; i < size; ++i) feed(data[i], b_exec_cb);
         }
 
-        void feed(const uint8_t d)
+        void feed(const uint8_t d, bool b_exec_cb = true)
         {
             if (d == START_BYTE)
             {
@@ -273,23 +288,29 @@ namespace packetizer {
                     buffer.push_back(d);
             }
 
+            if (available() && b_exec_cb) callback();
+        }
+
+        void callback()
+        {
+            while(available())
+            {
+                for (auto& c : callbacks)
+                {
+                    if (c.key == index())
+                    {
+                        c.func(data(), size());
+                        break;
+                    }
+                }
+                pop();
+            }
             // TODO: std::map / unordered_map compile error...
-            // if (available() && !callbacks.empty())
+            // while (available() && !callbacks.empty())
             // {
             //     auto it = callbacks.find(index());
             //     if (it != callbacks.end()) { it->second(data(), size()); pop(); }
             // }
-
-            if (!available()) return;
-
-            for (auto& c : callbacks)
-            {
-                if (available() && (c.key == index()))
-                {
-                    c.func(data(), size());
-                    pop();
-                }
-            }
         }
 
         bool isParsing() const { return b_parsing; }
@@ -316,7 +337,7 @@ namespace packetizer {
                         *it = *it ^ ESCAPE_MASK;
                     }
                 }
-                packets.push(buffer);
+                packets.push_back(buffer);
             }
             else
                 ++err_count;
