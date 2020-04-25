@@ -1,123 +1,252 @@
 # Packetizer
-binary data packer / unpacker
+
+binary data packetization encoder / decoder
 
 
 ## Feature
 
-- pack / unpack binary arrays to simple packet protocol
-- simple packet check option using header / escape sequence / crc8
-- mainly developed and checked for Arduino
-- checked on Arduino, openFrameworks, Max7
-- this repo is based on the work in [MsgPacketizer](https://github.com/hideakitai/MsgPacketizer) and [ArduinoOSC](https://github.com/hideakitai/ArduinoOSC)
+- encode / decode binary arrays to simple packet protocol
+- simple packet check using header / escape sequence / crc8
+- one-line packetizing and sending with Serial (or other Stream class)
+- callback registration with lambda and automatic execution
+- mainly developed for serial communication between Arduino and other apps (oF, Max, etc.)
+- this library is embeded and used inside of my other libraries
+  - [ArduinoOSC](https://github.com/hideakitai/ArduinoOSC) (only for OscSerial)
+  - [MsgPacketizer](https://github.com/hideakitai/MsgPacketizer)
+
 
 ## Packet Protocol
 
+| header | index  | data    | crc8   | footer |
+|--------|--------|---------|--------|--------|
+| 1 byte | 1 byte | N bytes | 1 byte | 1 byte |
+
+
 - 1 byte header
-- 1 byte index
+- 1 byte index (packet index can be used to identify packet)
 - N byte data (arbitrary binary arrays)
 - 1 byte crc8 (for received data check)
 - 1 byte footer
 
-1 byte index can be used to identify the type of packet, or as you like.
 All of the bytes (excluding header and footer) can be escaped and whole packet size can be increased.
 
 
-## Dependencies
-
-None
+## Quick Start
 
 
+``` C++
+#include <Packetizer.h>
 
-## Note
+Packetizer::Decoder decoder;
 
-You can use this library by copying Packetizer.h to anywhere and `#include "Packetizer.h"`.
-If you want to use projectGenerator of openFrameworks, rename directory to ```ofxPacketizer```.
-
-
-## Usage
-
-
-### Typical Usage
-
-#### pack & write
-
-``` c++
-Packetizer::Packer packer;
-packer.pack(1, 2, 3); // you can pack variable sized arguments
-Serial.write(packer.data(), packer.size());
-```
-
-#### read & unpack
-
-``` c++
-Packetizer::Unacker unpacker;
-
-void callback(const uint8_t* data, uint8_t size) { // do something here }
+uint8_t recv_index = 0x12;
+uint8_t send_index = 0x34;
 
 void setup()
 {
-    uint8_t index = 0x80; // function is automatically called if the index of received packet is 0x80
-
-    // add callback as lambda
-    unpacker.subscribe(index, [](const uint8_t* data, uint8_t size)
+    Serial.begin(115200);
+    decoder.attach(Serial);
+    
+    decoder.subscribe(recv_index, [](const uint8_t* data, uint8_t size)
     {
-        // do something here
+        Packetizer::send(Serial, send_index, data, size); // send back packet
     });
-
-    // you can also add callback like this
-    unpacker.subscribe(0x01, callback);
 }
 
 void loop()
 {
+    decoder.parse(); // must be called to trigger callback
+}
+```
+
+## Quick API Example
+
+### Simple One-Line Encode + Send
+
+``` C++
+// send array
+uint8_t index {0xAB};
+uint8_t arr[10] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
+Packetizer::send(Serial, index, arr, sizeof(arr));
+
+// send variable sized args 
+// note: only 1 byte integral (0-255) is available for each args
+Packetizer::send(Serial1, index, 1, 2, 3);
+Packetizer::send(Serial2, index, 1, 2, 3, 4, 5, 6);
+Packetizer::send(Serial3, index, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
+```
+
+### Simple Receive with Attached Serial + Decode with Lambda
+
+``` C++
+#include <Packetizer.h>
+
+Packetizer::Decoder decoder;
+
+uint8_t index_lambda = 0xAB;
+uint8_t index_ext_cb = 0xCD;
+void callback(const uint8_t* data, uint8_t size) 
+{
+    /* do something here */
+}
+
+void setup()
+{
+    Serial.begin(115200);
+    decoder.attach(Serial);
+
+    // these function will be called if the packet with this index has come
+    
+    // set callback with lambda
+    decoder.subscribe(index_lambda, [](const uint8_t* data, uint8_t size)
+    {
+        // do something here
+    });
+    
+    // set pre-defined callback
+    decoder.subscribe(index_ext_cb, callback);
+}
+
+void loop()
+{
+    // parse(): read stream, decode packet, and execute callbacks
+    // if no Stream object is attached, this function do nothing
+    decoder.parse();
+}
+```
+
+
+## Dependencies
+
+### Teensy 3.x on Arduino IDE
+
+- Please follow this instruction ([TeensyDirtySTLErrorSolution](https://github.com/hideakitai/TeensyDirtySTLErrorSolution)) to enable STL 
+
+
+### Other Platforms
+
+None
+
+
+## Decoding Details
+
+There are two main procedure to decode packets.
+
+### A. Auto Receive + Decode + Callback
+
+- attach Stream object
+- add callbacks
+- call parse()
+
+This example is already shown above.
+
+
+### B. Manual Data Feed + Manual Decode
+
+- no Stream object
+- no callbacks
+- feed() data and handle packet data manually
+
+
+``` c++
+Packetizer::Decoder decoder;
+
+void setup()
+{
+    // no Serial object attachment
+    // no callbacks
+}
+
+void loop()
+{
+    // manual binary data feed to decoder
     while (const int size = Serial.available())
     {
         uint8_t data[size];
         Serial.readBytes((char*)data, size);
-        unpacker.feed(data, size);
+        
+        // do something before decoding
+        
+        // if 3rd argument is false, callbacks won't be called
+        // even if callbacks are registered
+        decoder.feed(data, size, false);
+    }
+    
+    // manual packet handling
+    if (decoder.available())
+    {
+        // get decoded packet data
+        const auto& packet = decoder.packet();
+        const uint8_t* data = packet.data();
+        const uint8_t size = packet.size();
+        
+        uint8_t index = 0xEF;
+        if (decoder.index() == index)
+        {
+            // do something with data which has non-registered index
+            
+            // if data processing has done, pop current data
+            decoder.pop();
+        }
     }
 }
 ```
 
-### details of pack & write
 
-There are three ways to pack data.
+## Encoding Details
+
+### Encode and Send Separately
+
+``` C++
+const auto& packet = Packetizer::encode(index, arr, sizeof(arr));
+Serial.write(packet.data(), packet.size());
+```
+
+or
+
+``` C++
+const auto& packet = Packetizer::encode(index, 1, 2, 3, 4, 5);
+Serial.write(packet.data(), packet.size());
+```
+
+### Encoding methods
+
+There are three ways to encode data.
 
 #### 1. variable size arguments
 
-Packetizer can pack variable sized arguments.
+Packetizer::Encoder can pack variable sized arguments.
 
 ``` c++
-Packetizer::Packer packer;
-packer.pack(1, 2, 3); // you can pack variable sized arguments
-Serial.write(packer.data(), packer.size());
+Packetizer::Encoder encoder;
+encoder.pack(1, 2, 3); // you can pack variable sized arguments
+Serial.write(encoder.data(), encoder.size());
 ```
 
 Index can be set in constructer.
 
 ``` c++
-Packetizer::Packer packer(10); // you can set index in constructor (default is 0x00)
-packer.pack(11, 12, 13, 14, 15);
-Serial.write(packer.data(), packer.size());
+Packetizer::Encoder encoder(10); // you can set index in constructor (default is 0x00)
+encoder.pack(11, 12, 13, 14, 15);
+Serial.write(encoder.data(), encoder.size());
 ```
 
-If you want to re-use Packer instance, please call init() before you pack() data.
+If you want to re-use Packetizer::Encoder instance, please call init() before you pack() data.
 
 ``` c++
 // 1st use
-Packetizer::Packer packer;
-packer.pack(31, 32);
-Serial.write(packer.data(), packer.size());
+Packetizer::Encoder encoder;
+encoder.pack(31, 32);
+Serial.write(encoder.data(), encoder.size());
 
 // 2nd use
-packer.init(); // please call init() if you re-use Packer instance
-packer.pack(41, 42, 43);
-Serial.write(packer.data(), packer.size());
+encoder.init(); // please call init() if you re-use Encoder instance
+encoder.pack(41, 42, 43);
+Serial.write(encoder.data(), encoder.size());
 
 // 3rd use
-packer.init(50); // you can set index by init() (default is 0x00)
-packer.pack(51, 52, 53, 54);
-Serial.write(packer.data(), packer.size());
+encoder.init(50); // you can set index by init() (default is 0x00)encoder.pack(51, 52, 53, 54);
+Serial.write(encoder.data(), encoder.size());
 ```
 
 
@@ -126,90 +255,177 @@ Serial.write(packer.data(), packer.size());
 You can pack data using insertion operator. If you finish packing, please use Packer::endp().
 
 ``` c++
-Packetizer::Packer packer;
-packer << 1 << 2;                  // add bytes like this
-packer << 3;                       // you can add any bytes
-packer << 4 << Packetizer::endp(); // finally you should add Packer::endp
-Serial.write(packer.data(), packer.size());
+Packetizer::Encoder encoder;
+encoder << 1 << 2;                  // add bytes like this
+encoder << 3;                       // you can add any bytes
+encoder << 4 << Packetizer::endp(); // finally you should add Packer::endp
+Serial.write(encoder.data(), encoder.size());
 ```
 
 If you re-use Packer instance, please use init() before you pack().
 
 ``` c++
 // 1st use
-Packetizer::Packer packer;
-packer << 1 << 2 << 3 << 4 << Packetizer::endp();
-Serial.write(packer.data(), packer.size());
+Packetizer::Encoder encoder;
+encoder << 1 << 2 << 3 << 4 << Packetizer::endp();
+Serial.write(encoder.data(), encoder.size());
 
 // 2nd use
-packer.init();
-packer << 11 << 12 << 13 << Packer::endp;
+encoder.init();
+encoder << 11 << 12 << 13 << Packetizer::endp;
 Serial.write(packer.data(), packer.size());
 
 // 3rd use
-packer.init(20); // you can set index by init() (default is 0x00)
-packer << 21 << 22 << 23 << Packer::endp;
-Serial.write(packer.data(), packer.size());
+encoder.init(20); // you can set index by init() (default is 0x00)
+encoder << 21 << 22 << 23 << Packetizer::endp;
+Serial.write(encoder.data(), encoder.size());
 ```
 
-#### 3. pointer to array and size (used in previous versions)
+#### 3. pointer to array and size
 
 ``` c++
-Packetizer::Packer packer;
 uint8_t test_array[5] = {0x7C, 0x7D, 0x7E, 0x7F, 0x80};
 
-packer.pack(test_array, sizeof(test_array)); // default index = 0x00
-Serial.write(packer.data(), packer.size());
+Packetizer::Encoder encoder;
+encoder.pack(test_array, sizeof(test_array));
+Serial.write(encoder.data(), encoder.size());
 
-packer.pack(test_array, sizeof(test_array), 0x01); // you can change index number
-Serial.write(packer.data(), packer.size());
+encoder.init(0x01); // you can change index number
+encoder.pack(test_array, sizeof(test_array));
+Serial.write(encoder.data(), encoder.size());
 ```
 
 
-### Memory Management (for AVR Boards)
 
-For AVR boards like Arduino Uno, you can manage required packet data size and buffering queue size.
-Default packet data size is 32 byte, and buffering queue size is 2.
-So internally `Packetizer::Packer` and `Packetizer::Unpacker` is defined as:
+
+## API List
+
+
+### Global
+
+
+``` C++
+// send
+template <typename ...Rest>
+void Packetizer::send(Stream& stream, const uint8_t index, const uint8_t first, Rest&& ...args)
+void Packetizer::send(Stream& stream, const uint8_t index, const uint8_t* data, const uint8_t size)
+
+// encode
+template <typename ...Rest>
+const Packet& Packetizer::encode(const uint8_t index, const uint8_t first, Rest&& ...args)
+const Packet& Packetizer::encode(const uint8_t index, const uint8_t* data, const uint8_t size)
+```
+
+
+### Encoder Class
+
+``` C++
+explicit Encoder_(const uint8_t idx = 0)
+
+void init(const uint8_t index = 0)
+
+template <typename ...Rest>
+void pack(const uint8_t first, Rest&& ...args)
+void pack(const uint8_t* const sbuf, const uint8_t size)
+
+const endp& operator<< (const endp& e)
+Encoder_& operator<< (const uint8_t arg)
+
+const Buffer& packet() const
+size_t size() const
+const uint8_t* data() const
+```
+
+
+### Decoder Class
+
+``` C++
+void attach(Stream& s)
+void subscribe(const uint8_t index, const callback_t& func)
+
+void parse(bool b_exec_cb = true)
+
+void feed(const uint8_t* const data, const size_t size, bool b_exec_cb = true)
+void feed(const uint8_t d, bool b_exec_cb = true)
+void callback()
+
+bool isParsing() const
+size_t available() const
+void pop()
+void pop_back()
+
+uint8_t index() const
+uint8_t size() const
+uint8_t data(const uint8_t i) const
+const uint8_t* data() const
+
+uint8_t index_back() const
+uint8_t size_back() const
+uint8_t data_back(const uint8_t i) const
+const uint8_t* data_back() const
+
+uint32_t errors() const
+```
+
+
+## Other Options
+
+### Packet Data Storage Class Inside
+
+STL is used to handle packet data by default, but for following boards/architectures, [RingBuffer](https://github.com/hideakitai/RingBuffer) is used to storage packet data because STL can not be used for such boards.
+
+- AVR
+- megaAVR
+- SAMD
+- SPRESENSE
+
+
+### Memory Management (for NO-STL Boards)
+
+For such boards like Arduino Uno, you can manage required packet data size and buffering queue size.
+But you must use `Encoder`/`Decoder` object directly. Default packet data size is 64 byte, and buffering queue size is 2. Internally `Packetizer::Encoder` and `Packetizer::Decoder` is defined as:
 
 ``` c++
-using Packer = Packer_<64>;
-using Unpacker = Unpacker_<2, 64>;
+using Encoder = Encoder_<64>;
+using Decoder = Decoder_<2, 64>;
 ```
 
-If you want to use them in larger or smaller data / queue size, define instances like:
+So if you want to use them in larger or smaller data / queue size, define instances like:
 
 ``` c++
-Packetzier::Packer_<128> packer; // you can send 128 byte data
-Packetzier::Unpacker_<4, 128> packer; // you can receive 128 byte data and buffer 4 packets
+Packetzier::Encoder_<128> encoder;    // you can send 128 byte data
+Packetzier::Decoder_<4, 128> encoder; // you can receive 128 byte data and buffer 4 packets
 ```
 
-Also you can manage the number of callback stacks (only for Unpacker).
+Also you can manage the number of callback stacks (only for `Decoder`).
 
 ``` c++
-Packetzier::Unpacker_<4, 128, 16> packer; // 3rd argument is it. default is 8
+Packetzier::Decoder_<4, 128, 16> packer; // 3rd argument is it. default is 8
 ```
 
 
-### Memory Management (for NON-AVR Boards)
+### Memory Management (for STL Enabled Boards)
 
-For NON-AVR boards like ARM processors, you can manage only packet buffering queue size.
+For STL enabled boards, you can manage only packet buffering queue size.
+But it is disabled by default.
 Let me suppose that you add callbacks and you don't have other unpack method (like manually get data and `pop()` packets in `loop()`).
 In such case, if you receive unexpected `index` data in many times, packet queue becomes too large and memory shortage occurs.
-So internally we limit the packet queue size only you have callbacks.
+So internally we can limit the packet queue size only you have callbacks.
 If you receive correct `index` data, the packet will be handled in a moment.
 This is defined as:
 
 ``` c++
-using Unpacker = Unpacker_<4>;
+using Decoder = Decoder_<0>;
 ```
 
-So you can store 4 packet data by default.
-You can manage queue size as follows.
+So you can store packet data with no limit by default.
+You can manage queue size limit as follows.
+For example, to limit queue size = 4:
 
 ``` c++
-Packetzier::Unpacker_<16> packer;
+Packetzier::Decoder_<4> decoder;
 ```
+
 
 ## License
 

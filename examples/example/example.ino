@@ -1,40 +1,22 @@
-#include "Packetizer.h"
+#include <Packetizer.h>
 
-Packetizer::Unpacker unpacker;
+Packetizer::Decoder decoder;
 
-bool b_received_0 = false;
-bool b_received_1 = false;
+uint8_t recv_index = 0x12;
+uint8_t send_index = 0x34;
 
 void setup()
 {
     Serial.begin(115200);
+    decoder.attach(Serial);
 
-    unpacker.subscribe(0, [](const uint8_t* data, uint8_t size)
+    decoder.subscribe(recv_index, [](const uint8_t* data, uint8_t size)
     {
-        // send back packet
-        Packetizer::Packer packer(0xFF); // set index
-        for (uint8_t i = 0; i < size; ++i) packer << data[i];
-        packer << Packetizer::endp();
-        Serial.write(packer.data(), packer.size());
-    });
-
-    unpacker.subscribe(1, [](const uint8_t* data, uint8_t size)
-    {
-        // send back packet
-        Packetizer::Packer packer(0xFE); // set index
-        for (uint8_t i = 0; i < size; ++i) packer << data[i];
-        packer << Packetizer::endp();
-        Serial.write(packer.data(), packer.size());
+        Packetizer::send(Serial, send_index, data, size); // send back packet
     });
 }
 
 void loop()
 {
-    // read packet
-    while (const int size = Serial.available())
-    {
-        uint8_t data[size];
-        Serial.readBytes((char*)data, size);
-        unpacker.feed(data, size); // if index matches, callback is automatically called
-    }
+    decoder.parse();
 }

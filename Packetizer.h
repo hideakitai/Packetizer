@@ -1,47 +1,32 @@
 #pragma once
-#ifndef ARDUINO_PACKETIZER_H
-#define ARDUINO_PACKETIZER_H
+#ifndef HT_SERIAL_PACKETIZER
+#define HT_SERIAL_PACKETIZER
 
-// #ifdef TEENSYDUINO
-// #ifndef TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
-// #define TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
-// extern "C"
-// {
-//     // int _getpid() { return -1; }
-//     // int _kill(int pid, int sig) { return -1; }
-//     // int _write() { return -1; }
-//     // void *__exidx_start __attribute__((__visibility__ ("hidden")));
-//     // void *__exidx_end __attribute__((__visibility__ ("hidden")));
-//     int _getpid();// { return -1; }
-//     int _kill(int pid, int sig);// { return -1; }
-//     int _write();// { return -1; }
-//     void *__exidx_start __attribute__((__visibility__ ("hidden")));
-//     void *__exidx_end __attribute__((__visibility__ ("hidden")));
-// }
-// // DIRTY for TEENSYDUINO compile...
-// // copied from https://github.com/gcc-mirror/
-// namespace std
-// {
-//     void __throw_bad_alloc();// { _GLIBCXX_THROW_OR_ABORT(bad_alloc()); }
-//     void __throw_length_error(const char* __s __attribute__((unused)));// { _GLIBCXX_THROW_OR_ABORT(length_error(_(__s))); }
-//     void __throw_bad_function_call();// { _GLIBCXX_THROW_OR_ABORT(bad_function_call()); }
-//     // void _Rb_tree_decrement(std::_Rb_tree_node_base* a) {}
-//     // void _Rb_tree_insert_and_rebalance(bool, std::_Rb_tree_node_base*, std::_Rb_tree_node_base*, std::_Rb_tree_node_base&) {}
-// }
-// #endif // TEENSYDUINO_DIRTY_STL_ERROR_SOLUTION
-// #endif // TEENSYDUINO
+#if defined(ARDUINO_ARCH_AVR)\
+ || defined(ARDUINO_ARCH_MEGAAVR)\
+ || defined(ARDUINO_ARCH_SAMD)\
+ || defined(ARDUINO_spresense_ast)
+#define PACKETIZER_DISABLE_STL
+#endif
 
+#ifdef PACKETIZER_DISABLE_STL
 
-#if defined(__AVR__) || defined(ARDUINO_spresense_ast)
-#include "RingBuffer.h"
+#include "util/RingBuffer.h"
+
 #else
+
 #include <vector>
 #include <deque>
-// #include <map>
+#include <map>
 #include <functional>
-#endif // __AVR__
 
-namespace arduino {
+#endif // PACKETIZER_DISABLE_STL
+
+#include "util/TeensyDirtySTLErrorSolution.h"
+#include "util/CRCx/CRCx.h"
+
+namespace ht {
+namespace serial {
 namespace packetizer {
 
     static constexpr uint8_t INDEX_OFFSET_INDEX = 1;
@@ -53,33 +38,11 @@ namespace packetizer {
 
     struct endp {}; // for end of packet sign
 
-    static uint8_t crc8(const uint8_t* data, size_t size)
-    {
-        uint8_t result = 0xFF;
-        for (result = 0; size != 0; --size)
-        {
-            result ^= *data++;
-            for (size_t i = 0 ; i < 8; ++i)
-            {
-                if (result & 0x80)
-                {
-                    result <<= 1;
-                    result ^= 0x85; // x8 + x7 + x2 + x0
-                }
-                else
-                    result <<= 1;
-            }
-        }
-        return result;
-    }
-
-
-#if defined(__AVR__) || defined(ARDUINO_spresense_ast)
+#ifdef PACKETIZER_DISABLE_STL
 
     template <uint8_t N_PACKET_DATA_SIZE, uint8_t START_BYTE = 0xC1>
     class Encoder_
     {
-        // using Encoder = Encoder_;
         using Buffer = RingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
         using EscapeBuffer = RingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
 
@@ -91,7 +54,7 @@ namespace packetizer {
         using Buffer = std::vector<uint8_t>;
         using EscapeBuffer = std::deque<uint8_t>;
 
-#endif
+#endif // PACKETIZER_DISABLE_STL
 
         static constexpr uint8_t FINISH_BYTE {START_BYTE + 1};
         static constexpr uint8_t ESCAPE_BYTE {START_BYTE + 2};
@@ -101,18 +64,38 @@ namespace packetizer {
 
     public:
 
-        Encoder_(const uint8_t idx = 0) { init(idx); }
-
-
-        // get packing info
-        size_t size() const { return buffer.size(); }
-        const uint8_t* data() const { return buffer.data(); }
+        explicit Encoder_(const uint8_t idx = 0) { init(idx); }
 
         void init(const uint8_t index = 0)
         {
             buffer.clear();
             append((uint8_t)START_BYTE, false);
             append((uint8_t)index);
+        }
+
+        // ---------- pack w/ variadic arguments ----------
+
+        template <typename ...Rest>
+        void pack(const uint8_t first, Rest&& ...args)
+        {
+            append((uint8_t)first);
+#ifdef PACKETIZER_DISABLE_STL
+            pack(args...);
+#else
+            pack(std::forward<Rest>(args)...);
+#endif
+        }
+        void pack()
+        {
+            footer();
+        }
+
+        // ---------- pack w/ data pointer and size ----------
+
+        void pack(const uint8_t* const sbuf, const uint8_t size)
+        {
+            append((uint8_t*)sbuf, size);
+            footer();
         }
 
         // ---------- pack w/ insertion operator ----------
@@ -128,27 +111,10 @@ namespace packetizer {
             return *this;
         }
 
-        // ---------- pack w/ variadic arguments ----------
-
-        template <typename ...Rest>
-        void pack(const uint8_t first, const Rest&& ...args)
-        {
-            append((uint8_t)first);
-            pack(args...);
-        }
-        void pack()
-        {
-            footer();
-        }
-
-        // ---------- pack w/ data pointer and size ----------
-
-        void pack(const uint8_t* const sbuf, const uint8_t size, const uint8_t index = 0)
-        {
-            init(index);
-            append((uint8_t*)sbuf, size);
-            footer();
-        }
+        // get packing info
+        const Buffer& packet() const { return buffer; }
+        size_t size() const { return buffer.size(); }
+        const uint8_t* data() const { return buffer.data(); }
 
     private:
 
@@ -194,7 +160,7 @@ namespace packetizer {
 
         void footer()
         {
-            append(crc8(buffer.data(), buffer.size()));
+            append(crcx::crc8(buffer.data(), buffer.size()));
             append(FINISH_BYTE, false);
         }
 
@@ -206,7 +172,7 @@ namespace packetizer {
     };
 
 
-#if defined(__AVR__) || defined(ARDUINO_spresense_ast)
+#ifdef PACKETIZER_DISABLE_STL
 
     template <uint8_t N_PACKET_QUEUE_SIZE, uint8_t N_PACKET_DATA_SIZE, uint8_t N_CALLBACK_SIZE = 8, uint8_t START_BYTE = 0xC1>
     class Decoder_
@@ -224,11 +190,10 @@ namespace packetizer {
     {
         using Buffer = std::vector<uint8_t>;
         using callback_t = std::function<void(const uint8_t* data, const uint8_t size)>;
-        struct Map { uint8_t key; callback_t func; };
         using PacketQueue = std::deque<Buffer>;
-        using CallbackMap = std::vector<Map>;
+        using CallbackMap = std::map<uint8_t, callback_t>;
 
-#endif // __AVR__
+#endif // PACKETIZER_DISABLE_STL
 
         static constexpr uint8_t FINISH_BYTE {START_BYTE + 1};
         static constexpr uint8_t ESCAPE_BYTE {START_BYTE + 2};
@@ -243,29 +208,34 @@ namespace packetizer {
 
         uint32_t err_count {0};
 
+        Stream* stream {nullptr};
+
     public:
 
         using CallbackType = callback_t;
 
+        void attach(Stream& s) { stream = &s; }
+
         void subscribe(const uint8_t index, const callback_t& func)
         {
-            callbacks.emplace_back(Map{index, func});
+#ifdef PACKETIZER_DISABLE_STL
+            callbacks.push_back(Map{index, func});
+#else
+            callbacks.emplace(std::make_pair(index, func));
+#endif // PACKETIZER_DISABLE_STL
         }
 
-        size_t available() const { return packets.size(); }
+        void parse(bool b_exec_cb = true)
+        {
+            if (stream == nullptr) return;
 
-        uint8_t index() const { return packets.front()[INDEX_OFFSET_INDEX]; }
-        uint8_t size() const { return packets.front().size() - N_HEADER_FOOTER_SIZE; }
-        uint8_t data(const uint8_t i) const { return data()[i]; }
-        const uint8_t* data() const { return packets.front().data() + INDEX_OFFSET_DATA; }
-
-        uint8_t index_back() const { return packets.back()[INDEX_OFFSET_INDEX]; }
-        uint8_t size_back() const { return packets.back().size() - N_HEADER_FOOTER_SIZE; }
-        uint8_t data_back(const uint8_t i) const { return data_back()[i]; }
-        const uint8_t* data_back() const { return packets.back().data() + INDEX_OFFSET_DATA; }
-
-        void pop() { packets.pop_front(); }
-        void pop_back() { packets.pop_back(); }
+            while (const int size = stream->available())
+            {
+                uint8_t data[size];
+                stream->readBytes((char*)data, size);
+                feed(data, size, b_exec_cb);
+            }
+        }
 
         void feed(const uint8_t* const data, const size_t size, bool b_exec_cb = true)
         {
@@ -293,8 +263,11 @@ namespace packetizer {
 
         void callback()
         {
+            if (callbacks.empty()) return;
+
             while(available())
             {
+#ifdef PACKETIZER_DISABLE_STL
                 for (auto& c : callbacks)
                 {
                     if (c.key == index())
@@ -303,25 +276,30 @@ namespace packetizer {
                         break;
                     }
                 }
+#else
+                auto it = callbacks.find(index());
+                if (it != callbacks.end()) it->second(data(), size());
+#endif // PACKETIZER_DISABLE_STL
                 pop();
             }
-            // TODO: std::map / unordered_map compile error...
-            // while (available() && !callbacks.empty())
-            // {
-            //     auto it = callbacks.find(index());
-            //     if (it != callbacks.end()) { it->second(data(), size()); pop(); }
-            // }
         }
 
         bool isParsing() const { return b_parsing; }
+        size_t available() const { return packets.size(); }
+        void pop() { packets.pop_front(); }
+        void pop_back() { packets.pop_back(); }
+
+        uint8_t index() const { return packets.front()[INDEX_OFFSET_INDEX]; }
+        uint8_t size() const { return packets.front().size() - N_HEADER_FOOTER_SIZE; }
+        uint8_t data(const uint8_t i) const { return data()[i]; }
+        const uint8_t* data() const { return packets.front().data() + INDEX_OFFSET_DATA; }
+
+        uint8_t index_back() const { return packets.back()[INDEX_OFFSET_INDEX]; }
+        uint8_t size_back() const { return packets.back().size() - N_HEADER_FOOTER_SIZE; }
+        uint8_t data_back(const uint8_t i) const { return data_back()[i]; }
+        const uint8_t* data_back() const { return packets.back().data() + INDEX_OFFSET_DATA; }
 
         uint32_t errors() const { return err_count; }
-
-        void reset()
-        {
-            buffer.clear();
-            b_parsing = false;
-        }
 
     private:
 
@@ -344,7 +322,9 @@ namespace packetizer {
 
             reset();
 
-            if (available() > N_PACKET_QUEUE_SIZE) pop();
+            if (N_PACKET_QUEUE_SIZE != 0)
+                if (available() > N_PACKET_QUEUE_SIZE)
+                    pop();
         }
 
         bool isCrcMatched()
@@ -357,24 +337,112 @@ namespace packetizer {
                 crc_offset_size = 2;
             }
 
-            uint8_t crc = crc8(buffer.data(), buffer.size() - crc_offset_size);
+            uint8_t crc = crcx::crc8(buffer.data(), buffer.size() - crc_offset_size);
             return (crc == crc_received);
         }
 
+        void reset()
+        {
+            buffer.clear();
+            b_parsing = false;
+        }
     };
 
-#if defined(__AVR__) || defined(ARDUINO_spresense_ast)
+#ifdef PACKETIZER_DISABLE_STL
     using Encoder = Encoder_<64>;
     using Decoder = Decoder_<2, 64>;
+    using Packet = RingBuffer<uint8_t, 64>;
 #else
     using Encoder = Encoder_<>;
-    using Decoder = Decoder_<4>;
+    using Decoder = Decoder_<0>;
+    using Packet = std::vector<uint8_t>;
 #endif
     using CallbackType = Decoder::CallbackType;
 
+
+    class PacketizeManager
+    {
+        PacketizeManager() {}
+        PacketizeManager(const PacketizeManager&) = delete;
+        PacketizeManager& operator=(const PacketizeManager&) = delete;
+
+        Encoder encoder;
+
+    public:
+
+        static PacketizeManager& getInstance()
+        {
+            static PacketizeManager m;
+            return m;
+        }
+
+        Encoder& getEncoder()
+        {
+            return encoder;
+        }
+    };
+
+    const Packet& encode(const uint8_t index, const uint8_t* data, const uint8_t size)
+    {
+        auto& e = PacketizeManager::getInstance().getEncoder();
+        e.init(index);
+        e.pack(data, size);
+        return e.packet();
+    }
+
+    template <typename ...Rest>
+    const Packet& encode(const uint8_t index, const uint8_t first, Rest&& ...args)
+    {
+        auto& e = PacketizeManager::getInstance().getEncoder();
+        e.init(index);
+
+#ifdef PACKETIZER_DISABLE_STL
+        return encode(e, first, args...);
+#else
+        return encode(e, first, std::forward<Rest>(args)...);
+#endif
+    }
+
+    template <typename ...Rest>
+    const Packet& encode(Encoder& p, const uint8_t first, Rest&& ...args)
+    {
+        p << first;
+
+#ifdef PACKETIZER_DISABLE_STL
+        return encode(p, args...);
+#else
+        return encode(p, std::forward<Rest>(args)...);
+#endif
+    }
+
+    const Packet& encode(Encoder& p)
+    {
+        p << endp();
+        return p.packet();
+    }
+
+
+    void send(Stream& stream, const uint8_t index, const uint8_t* data, const uint8_t size)
+    {
+        const auto& packet = encode(index, data, size);
+        stream.write(packet.data(), packet.size());
+    }
+
+    template <typename ...Rest>
+    void send(Stream& stream, const uint8_t index, const uint8_t first, Rest&& ...args)
+    {
+#ifdef PACKETIZER_DISABLE_STL
+        const auto& packet = encode(index, first, args...);
+#else
+        const auto& packet = encode(index, first, std::forward<Rest>(args)...);
+#endif
+        stream.write(packet.data(), packet.size());
+    }
+
 } // packetizer
-} // arduino
+} // serial
+} // ht
 
-namespace Packetizer = arduino::packetizer;
+namespace Packetizer = ht::serial::packetizer;
 
-#endif // ARDUINO_PACKETIZER_H
+#endif // HT_SERIAL_PACKETIZER
