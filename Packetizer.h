@@ -9,6 +9,11 @@
 #define PACKETIZER_DISABLE_STL
 #endif
 
+#if defined(ARDUINO)\
+ || defined(OF_VERSION_MAJOR)
+#define PACKETIZER_ENABLE_STREAM
+#endif
+
 #ifdef PACKETIZER_DISABLE_STL
 
 #include "util/ArxRingBuffer.h"
@@ -197,6 +202,14 @@ namespace packetizer {
 
 #endif // PACKETIZER_DISABLE_STL
 
+#ifdef PACKETIZER_ENABLE_STREAM
+#ifdef ARDUINO
+        using StreamType = Stream;
+#elif defined (OF_VERSION_MAJOR)
+        using StreamType = ofSerial;
+#endif
+#endif
+
         static constexpr uint8_t FINISH_BYTE {START_BYTE + 1};
         static constexpr uint8_t ESCAPE_BYTE {START_BYTE + 2};
         static constexpr uint8_t ESCAPE_MASK {0x20};
@@ -211,13 +224,17 @@ namespace packetizer {
 
         uint32_t err_count {0};
 
-        Stream* stream {nullptr};
+#ifdef PACKETIZER_ENABLE_STREAM
+        StreamType* stream {nullptr};
+#endif
 
     public:
 
         using CallbackType = callback_t;
 
-        void attach(Stream& s) { stream = &s; }
+#ifdef PACKETIZER_ENABLE_STREAM
+        void attach(StreamType& s) { stream = &s; }
+#endif
 
         void subscribe(const uint8_t index, const callback_t& func)
         {
@@ -254,6 +271,7 @@ namespace packetizer {
 #endif // PACKETIZER_DISABLE_STL
         }
 
+#ifdef PACKETIZER_ENABLE_STREAM
         void parse(bool b_exec_cb = true)
         {
             if (stream == nullptr) return;
@@ -265,6 +283,7 @@ namespace packetizer {
                 feed(data, size, b_exec_cb);
             }
         }
+#endif // PACKETIZER_ENABLE_STREAM
 
         void feed(const uint8_t* const data, const size_t size, bool b_exec_cb = true)
         {
@@ -454,22 +473,35 @@ namespace packetizer {
     }
 
 
-    void send(Stream& stream, const uint8_t index, const uint8_t* data, const uint8_t size)
+#ifdef PACKETIZER_ENABLE_STREAM
+
+    template <typename StreamType>
+    void send(StreamType& stream, const uint8_t index, const uint8_t* data, const uint8_t size)
     {
         const auto& packet = encode(index, data, size);
+#ifdef ARDUINO
         stream.write(packet.data(), packet.size());
+#elif defined(OF_VERSION_MAJOR)
+        stream.writeBytes(packet.data(), packet.size());
+#endif
     }
 
-    template <typename ...Rest>
-    void send(Stream& stream, const uint8_t index, const uint8_t first, Rest&& ...args)
+    template <typename StreamType, typename ...Rest>
+    void send(StreamType& stream, const uint8_t index, const uint8_t first, Rest&& ...args)
     {
 #ifdef PACKETIZER_DISABLE_STL
         const auto& packet = encode(index, first, args...);
 #else
         const auto& packet = encode(index, first, std::forward<Rest>(args)...);
 #endif
+#ifdef ARDUINO
         stream.write(packet.data(), packet.size());
+#elif defined(OF_VERSION_MAJOR)
+        stream.writeBytes(packet.data(), packet.size());
+#endif
     }
+
+#endif // PACKETIZER_ENABLE_STREAM
 
 } // packetizer
 } // serial

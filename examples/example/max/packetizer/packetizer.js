@@ -1,8 +1,8 @@
 const crc = require('./crc.js');
 
-const START_BYTE  = 0x7D;
-const FINISH_BYTE = 0x7E;
-const ESCAPE_BYTE = 0x7F;
+const START_BYTE  = 0xC1;
+const FINISH_BYTE = START_BYTE + 1;
+const ESCAPE_BYTE = START_BYTE + 2;
 const ESCAPE_MASK = 0x20;
 
 let index = 0;
