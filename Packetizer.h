@@ -11,7 +11,7 @@
 
 #ifdef PACKETIZER_DISABLE_STL
 
-#include "util/RingBuffer.h"
+#include "util/ArxRingBuffer.h"
 
 #else
 
