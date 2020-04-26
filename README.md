@@ -105,6 +105,12 @@ void setup()
 
     // set pre-defined callback
     decoder.subscribe(index_ext_cb, callback);
+    
+    // set callback without index
+    decoder.subscribe([](const uint8_t index, const uint8_t* data, const uint8_t size)
+    {
+        // this function will be called everytime when packet has come
+    });
 }
 
 void loop()
