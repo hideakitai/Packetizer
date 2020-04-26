@@ -4,8 +4,9 @@
 class ofApp : public ofBaseApp 
 {
 	ofSerial serial;
-	stringstream info[2];
-	Packetizer::Unpacker unpacker;
+	stringstream decoder_info;
+	Packetizer::Decoder decoder;
+    string modem {"/dev/tty.usbserial-DN06ACVP"}; // <= change to your own board
 
 public:
 
@@ -15,60 +16,46 @@ public:
 		ofSetFrameRate(60);
 		ofSetBackgroundColor(0);
 
-//		serial.setup("/dev/tty.usbmodem3071691", 115200);
-		serial.setup("/dev/tty.usbmodem1421", 115200);
+		serial.setup(modem, 115200);
+        decoder.attach(serial);
 
-		unpacker.subscribe(0xFF, [&](const uint8_t* data, uint8_t size) 
+        decoder.subscribe([&](const uint8_t index, const uint8_t* data, uint8_t size)
+        {
+            decoder_info << "packet has come! index = 0x" << std::hex << (int)index << endl;
+        });
+        
+		decoder.subscribe(0x34, [&](const uint8_t* data, uint8_t size)
 		{
-			info[0].str("");
-			info[0].clear();
-			
-			info[0] << "size : " << (int)size << endl;
-			info[0] << "data : ";
-			for (size_t i = 0; i < size; ++i) info[0] << (int)data[i] << " ";
-			info[0] << endl;
+            decoder_info << std::dec;
+			decoder_info << "size : " << (int)size << endl;
+			decoder_info << "data : ";
+			for (size_t i = 0; i < size; ++i) decoder_info << (int)data[i] << " ";
+			decoder_info << endl;
 			
 			if (size != 10) cout << "error 0xFF " << (int)size << endl;
 			if (size != 10) cout << "error 0xFF " << (int)data[3] << endl;
 		});
-		unpacker.subscribe(0xFE, [&](const uint8_t* data, uint8_t size)
- 	    {
-		    info[1].str("");
-		    info[1].clear();
-		   
-		    info[1] << "size : " << (int)size << endl;
-		    info[1] << "data : ";
-		    for (size_t i = 0; i < size; ++i) info[1] << (int)data[i] << " ";
-			info[1] << endl;
-			
-			if (size != 5) cout << "error 0xFE " << (int)size << endl;
-			if (size != 5) cout << "error 0xFE " << (int)data[4] << endl;
-	    });
 	}
 
 	void update()
 	{
-		Packetizer::Packer packer;
-		packer.pack(0, 1, 2, ofGetFrameNum() % 256, 4, 5, 6, 7, 8, 9);
-		serial.writeBytes(packer.data(), packer.size());
-		
-		packer.init(1);
-		packer << 9 << 8 << 7 << 6 << ofGetFrameNum() % 256 << Packetizer::endp();
-		serial.writeBytes(packer.data(), packer.size());
-		
-		while (const size_t size = serial.available())
-		{
-			uint8_t serial_buffer[size];
-			serial.readBytes((unsigned char*)serial_buffer, size);
-			unpacker.feed((uint8_t*)serial_buffer, size);
-		}
+        Packetizer::send(serial, 0x12, 0, 1, 2, ofGetFrameNum() % 256, 4, 5, 6, 7, 8, 9);
+
+        decoder_info.str("");
+        decoder_info.clear();
+        
+        decoder.parse();
 	}
 
 	void draw()
 	{
-		ofDrawBitmapString(ofToString(ofGetFrameRate()), 20, 20);
-		ofDrawBitmapString(info[0].str(), 20, 40);
-		ofDrawBitmapString(info[1].str(), 20, 120);
+		ofDrawBitmapString("FPS : " + ofToString(ofGetFrameRate()), 20, 20);
+        
+        const string& str = decoder_info.str();
+        if (str.empty())
+            ofDrawBitmapString("no response", 20, 40);
+        else
+            ofDrawBitmapString(str, 20, 40);
 	}
 };
 
