@@ -46,8 +46,8 @@ void setup()
 {
     Serial.begin(115200);
     decoder.attach(Serial);
-    
-    decoder.subscribe(recv_index, [](const uint8_t* data, uint8_t size)
+
+    decoder.subscribe(recv_index, [](const uint8_t* data, const uint8_t size)
     {
         Packetizer::send(Serial, send_index, data, size); // send back packet
     });
@@ -69,7 +69,7 @@ uint8_t index {0xAB};
 uint8_t arr[10] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
 Packetizer::send(Serial, index, arr, sizeof(arr));
 
-// send variable sized args 
+// send variable sized args
 // note: only 1 byte integral (0-255) is available for each args
 Packetizer::send(Serial1, index, 1, 2, 3);
 Packetizer::send(Serial2, index, 1, 2, 3, 4, 5, 6);
@@ -85,7 +85,7 @@ Packetizer::Decoder decoder;
 
 uint8_t index_lambda = 0xAB;
 uint8_t index_ext_cb = 0xCD;
-void callback(const uint8_t* data, uint8_t size) 
+void callback(const uint8_t* data, const uint8_t size)
 {
     /* do something here */
 }
@@ -96,13 +96,13 @@ void setup()
     decoder.attach(Serial);
 
     // these function will be called if the packet with this index has come
-    
+
     // set callback with lambda
-    decoder.subscribe(index_lambda, [](const uint8_t* data, uint8_t size)
+    decoder.subscribe(index_lambda, [](const uint8_t* data, const uint8_t size)
     {
         // do something here
     });
-    
+
     // set pre-defined callback
     decoder.subscribe(index_ext_cb, callback);
 }
@@ -120,7 +120,7 @@ void loop()
 
 ### Teensy 3.x on Arduino IDE
 
-- Please follow this instruction ([TeensyDirtySTLErrorSolution](https://github.com/hideakitai/TeensyDirtySTLErrorSolution)) to enable STL 
+- Please follow this instruction ([TeensyDirtySTLErrorSolution](https://github.com/hideakitai/TeensyDirtySTLErrorSolution)) to enable STL
 
 
 ### Other Platforms
@@ -164,14 +164,14 @@ void loop()
     {
         uint8_t data[size];
         Serial.readBytes((char*)data, size);
-        
+
         // do something before decoding
-        
+
         // if 3rd argument is false, callbacks won't be called
         // even if callbacks are registered
         decoder.feed(data, size, false);
     }
-    
+
     // manual packet handling
     if (decoder.available())
     {
@@ -179,18 +179,32 @@ void loop()
         const auto& packet = decoder.packet();
         const uint8_t* data = packet.data();
         const uint8_t size = packet.size();
-        
+
         uint8_t index = 0xEF;
         if (decoder.index() == index)
         {
             // do something with data which has non-registered index
-            
+
             // if data processing has done, pop current data
             decoder.pop();
         }
     }
 }
 ```
+
+
+### Callback at Every Packet
+
+If you register callback without index, it will be called every time when packet has come. Note that the function arguments are different from that with index.
+
+``` C++
+decoder.subscribe([](const uint8_t index, const uint8_t* data, const uint8_t size)
+{
+    // this function will be called every time when packet has come
+});
+```
+
+
 
 
 ## Encoding Details
@@ -245,7 +259,8 @@ encoder.pack(41, 42, 43);
 Serial.write(encoder.data(), encoder.size());
 
 // 3rd use
-encoder.init(50); // you can set index by init() (default is 0x00)encoder.pack(51, 52, 53, 54);
+encoder.init(50); // you can set index by init() (default is 0x00)
+encoder.pack(51, 52, 53, 54);
 Serial.write(encoder.data(), encoder.size());
 ```
 
@@ -342,7 +357,9 @@ const uint8_t* data() const
 ``` C++
 void attach(Stream& s)
 void subscribe(const uint8_t index, const callback_t& func)
-
+void subscribe(const cb_always_t& func)
+void unsubscribe(uint8_t index)
+void unsubscribe()
 void parse(bool b_exec_cb = true)
 
 void feed(const uint8_t* const data, const size_t size, bool b_exec_cb = true)
