@@ -43,8 +43,8 @@ namespace packetizer {
     template <uint8_t N_PACKET_DATA_SIZE, uint8_t START_BYTE = 0xC1>
     class Encoder_
     {
-        using Buffer = RingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
-        using EscapeBuffer = RingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
+        using Buffer = ArxRingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
+        using EscapeBuffer = ArxRingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
 
 #else
 
@@ -177,12 +177,12 @@ namespace packetizer {
     template <uint8_t N_PACKET_QUEUE_SIZE, uint8_t N_PACKET_DATA_SIZE, uint8_t N_CALLBACK_SIZE = 8, uint8_t START_BYTE = 0xC1>
     class Decoder_
     {
-        using Buffer = RingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
+        using Buffer = ArxRingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
         typedef void (*callback_t)(const uint8_t* data, const uint8_t size);
         typedef void (*cb_always_t)(const uint8_t index, const uint8_t* data, const uint8_t size);
         struct Map { uint8_t key; callback_t func; };
-        using PacketQueue = RingBuffer<Buffer, N_PACKET_QUEUE_SIZE>;
-        using CallbackMap = RingBuffer<Map, N_CALLBACK_SIZE>;
+        using PacketQueue = ArxRingBuffer<Buffer, N_PACKET_QUEUE_SIZE>;
+        using CallbackMap = ArxRingBuffer<Map, N_CALLBACK_SIZE>;
 
 #else
 
@@ -383,7 +383,7 @@ namespace packetizer {
 #ifdef PACKETIZER_DISABLE_STL
     using Encoder = Encoder_<64>;
     using Decoder = Decoder_<2, 64>;
-    using Packet = RingBuffer<uint8_t, 64>;
+    using Packet = ArxRingBuffer<uint8_t, 64>;
 #else
     using Encoder = Encoder_<>;
     using Decoder = Decoder_<0>;
