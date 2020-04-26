@@ -449,6 +449,50 @@ void setup()
     // -----------------------------------------------------------------------
 
     Serial.println();
+    Serial.println("test 12");
+    Serial.println("---------- packing data ----------");
+
+    Serial.print("data : ");
+    for (uint8_t i = 0; i < 10; ++i)
+    {
+        Serial.print(i, HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    const auto& packet12 = Packetizer::encode(12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22);
+
+    Serial.println("---------- packed data ----------");
+    Serial.print("data : ");
+    for (auto& p : packet12)
+    {
+        Serial.print(p, HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    unpacker.subscribe([](const uint8_t index, const uint8_t* data, const uint8_t size)
+    {
+        Serial.print("index = ");
+        Serial.print(index);
+        Serial.print(", size = ");
+        Serial.print(size);
+        Serial.print(", data = ");
+        for (uint8_t i = 0; i < size; ++i)
+        {
+            Serial.print(data[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+    });
+
+    Serial.println("---------- unpacked results ----------");
+
+    unpacker.feed(packet12.data(), packet12.size());
+
+    // -----------------------------------------------------------------------
+
+    Serial.println();
     Serial.println("test 10");
     Serial.println("---------- packing data ----------");
 

@@ -179,6 +179,7 @@ namespace packetizer {
     {
         using Buffer = RingBuffer<uint8_t, N_PACKET_DATA_SIZE>;
         typedef void (*callback_t)(const uint8_t* data, const uint8_t size);
+        typedef void (*cb_always_t)(const uint8_t index, const uint8_t* data, const uint8_t size);
         struct Map { uint8_t key; callback_t func; };
         using PacketQueue = RingBuffer<Buffer, N_PACKET_QUEUE_SIZE>;
         using CallbackMap = RingBuffer<Map, N_CALLBACK_SIZE>;
@@ -190,6 +191,7 @@ namespace packetizer {
     {
         using Buffer = std::vector<uint8_t>;
         using callback_t = std::function<void(const uint8_t* data, const uint8_t size)>;
+        using cb_always_t = std::function<void(const uint8_t index, const uint8_t* data, const uint8_t size)>;
         using PacketQueue = std::deque<Buffer>;
         using CallbackMap = std::map<uint8_t, callback_t>;
 
@@ -202,6 +204,7 @@ namespace packetizer {
         Buffer buffer;
         PacketQueue packets;
         CallbackMap callbacks;
+        cb_always_t callback_always;
 
         bool b_parsing {false};
         bool b_escape {false};
@@ -223,6 +226,11 @@ namespace packetizer {
 #else
             callbacks.emplace(std::make_pair(index, func));
 #endif // PACKETIZER_DISABLE_STL
+        }
+
+        void subscribe(const cb_always_t& func)
+        {
+            callback_always = func;
         }
 
         void parse(bool b_exec_cb = true)
@@ -263,10 +271,13 @@ namespace packetizer {
 
         void callback()
         {
-            if (callbacks.empty()) return;
+            if (!callback_always && callbacks.empty()) return;
 
             while(available())
             {
+                if (callback_always)
+                    callback_always(index(), data(), size());
+
 #ifdef PACKETIZER_DISABLE_STL
                 for (auto& c : callbacks)
                 {
