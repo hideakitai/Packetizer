@@ -233,6 +233,27 @@ namespace packetizer {
             callback_always = func;
         }
 
+        void unsubscribe()
+        {
+            callback_always = nullptr;
+        }
+
+        void unsubscribe(uint8_t index)
+        {
+#ifdef PACKETIZER_DISABLE_STL
+            for (uint8_t i = 0; i < callbacks.size(); ++i)
+            {
+                if (callbacks[i].key == index)
+                {
+                    callbacks.erase(callbacks.begin() + i);
+                    break;
+                }
+            }
+#else
+            callbacks.erase(index);
+#endif // PACKETIZER_DISABLE_STL
+        }
+
         void parse(bool b_exec_cb = true)
         {
             if (stream == nullptr) return;

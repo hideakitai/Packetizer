@@ -523,6 +523,8 @@ void setup()
 
     // -----------------------------------------------------------------------
 
+    unpacker.unsubscribe();
+
     Serial.println();
     Serial.println("test 11");
     Serial.println("---------- packing data ----------");
