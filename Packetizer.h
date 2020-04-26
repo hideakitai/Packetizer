@@ -27,7 +27,10 @@
 
 #endif // PACKETIZER_DISABLE_STL
 
+#ifdef TEENSYDUINO
 #include "util/TeensyDirtySTLErrorSolution.h"
+#endif
+
 #include "util/CRCx/CRCx.h"
 
 namespace ht {
