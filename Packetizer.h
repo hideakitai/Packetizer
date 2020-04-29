@@ -436,7 +436,7 @@ namespace packetizer {
         }
     };
 
-    const Packet& encode(const uint8_t index, const uint8_t* data, const uint8_t size)
+    inline const Packet& encode(const uint8_t index, const uint8_t* data, const uint8_t size)
     {
         auto& e = PacketizeManager::getInstance().getEncoder();
         e.init(index);
@@ -445,7 +445,7 @@ namespace packetizer {
     }
 
     template <typename ...Rest>
-    const Packet& encode(const uint8_t index, const uint8_t first, Rest&& ...args)
+    inline const Packet& encode(const uint8_t index, const uint8_t first, Rest&& ...args)
     {
         auto& e = PacketizeManager::getInstance().getEncoder();
         e.init(index);
@@ -458,7 +458,7 @@ namespace packetizer {
     }
 
     template <typename ...Rest>
-    const Packet& encode(Encoder& p, const uint8_t first, Rest&& ...args)
+    inline const Packet& encode(Encoder& p, const uint8_t first, Rest&& ...args)
     {
         p << first;
 
@@ -469,7 +469,7 @@ namespace packetizer {
 #endif
     }
 
-    const Packet& encode(Encoder& p)
+    inline const Packet& encode(Encoder& p)
     {
         p << endp();
         return p.packet();
@@ -479,7 +479,7 @@ namespace packetizer {
 #ifdef PACKETIZER_ENABLE_STREAM
 
     template <typename StreamType>
-    void send(StreamType& stream, const uint8_t index, const uint8_t* data, const uint8_t size)
+    inline void send(StreamType& stream, const uint8_t index, const uint8_t* data, const uint8_t size)
     {
         const auto& packet = encode(index, data, size);
 #ifdef ARDUINO
@@ -490,7 +490,7 @@ namespace packetizer {
     }
 
     template <typename StreamType, typename ...Rest>
-    void send(StreamType& stream, const uint8_t index, const uint8_t first, Rest&& ...args)
+    inline void send(StreamType& stream, const uint8_t index, const uint8_t first, Rest&& ...args)
     {
 #ifdef PACKETIZER_DISABLE_STL
         const auto& packet = encode(index, first, args...);
