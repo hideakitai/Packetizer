@@ -414,19 +414,19 @@ namespace packetizer {
     using CallbackType = Decoder::CallbackType;
 
 
-    class PacketizeManager
+    class EncodeManager
     {
-        PacketizeManager() {}
-        PacketizeManager(const PacketizeManager&) = delete;
-        PacketizeManager& operator=(const PacketizeManager&) = delete;
+        EncodeManager() {}
+        EncodeManager(const EncodeManager&) = delete;
+        EncodeManager& operator=(const EncodeManager&) = delete;
 
         Encoder encoder;
 
     public:
 
-        static PacketizeManager& getInstance()
+        static EncodeManager& getInstance()
         {
-            static PacketizeManager m;
+            static EncodeManager m;
             return m;
         }
 
@@ -438,7 +438,7 @@ namespace packetizer {
 
     inline const Packet& encode(const uint8_t index, const uint8_t* data, const uint8_t size)
     {
-        auto& e = PacketizeManager::getInstance().getEncoder();
+        auto& e = EncodeManager::getInstance().getEncoder();
         e.init(index);
         e.pack(data, size);
         return e.packet();
@@ -447,7 +447,7 @@ namespace packetizer {
     template <typename ...Rest>
     inline const Packet& encode(const uint8_t index, const uint8_t first, Rest&& ...args)
     {
-        auto& e = PacketizeManager::getInstance().getEncoder();
+        auto& e = EncodeManager::getInstance().getEncoder();
         e.init(index);
 
 #ifdef PACKETIZER_DISABLE_STL
