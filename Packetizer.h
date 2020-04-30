@@ -469,6 +469,19 @@ class Decoder;
             return decoder;
         }
 
+        void parse(bool b_exec_cb = true)
+        {
+            for (auto& d : decoders)
+            {
+                while (const int size = d.first->available())
+                {
+                    uint8_t data[size];
+                    d.first->readBytes((char*)data, size);
+                    d.second->feed(data, size, b_exec_cb);
+                }
+            }
+        }
+
         DecoderRef getDecoderRef(const StreamType& stream)
         {
             StreamType* s = (StreamType*)&stream;
@@ -508,16 +521,7 @@ class Decoder;
 
     void parse(bool b_exec_cb = true)
     {
-        auto& decoders = DecodeManager::getInstance().getDecoderMap();
-        for (auto& d : decoders)
-        {
-            while (const int size = d.first->available())
-            {
-                uint8_t data[size];
-                d.first->readBytes((char*)data, size);
-                d.second->feed(data, size, b_exec_cb);
-            }
-        }
+        DecodeManager::getInstance().parse(b_exec_cb);
     }
 
 #endif // PACKETIZER_ENABLE_STREAM
