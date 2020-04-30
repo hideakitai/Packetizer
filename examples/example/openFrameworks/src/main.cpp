@@ -5,8 +5,7 @@ class ofApp : public ofBaseApp
 {
 	ofSerial serial;
 	stringstream decoder_info;
-	Packetizer::Decoder decoder;
-    string modem {"/dev/tty.usbserial-DN06ACVP"}; // <= change to your own board
+    string modem {"/dev/tty.usbmodem70085801"}; // <= change to your own board
 
 public:
 
@@ -17,14 +16,13 @@ public:
 		ofSetBackgroundColor(0);
 
 		serial.setup(modem, 115200);
-        decoder.attach(serial);
 
-        decoder.subscribe([&](const uint8_t index, const uint8_t* data, uint8_t size)
+        Packetizer::subscribe(serial, [&](const uint8_t index, const uint8_t* data, uint8_t size)
         {
             decoder_info << "packet has come! index = 0x" << std::hex << (int)index << endl;
         });
         
-		decoder.subscribe(0x34, [&](const uint8_t* data, uint8_t size)
+		Packetizer::subscribe(serial, 0x34, [&](const uint8_t* data, uint8_t size)
 		{
             decoder_info << std::dec;
 			decoder_info << "size : " << (int)size << endl;
@@ -44,7 +42,7 @@ public:
         decoder_info.str("");
         decoder_info.clear();
         
-        decoder.parse();
+        Packetizer::parse();
 	}
 
 	void draw()
