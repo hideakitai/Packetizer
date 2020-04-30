@@ -6,29 +6,34 @@
  || defined(ARDUINO_ARCH_MEGAAVR)\
  || defined(ARDUINO_ARCH_SAMD)\
  || defined(ARDUINO_spresense_ast)
-#define PACKETIZER_DISABLE_STL
+    #define PACKETIZER_DISABLE_STL
 #endif
 
 #if defined(ARDUINO)\
  || defined(OF_VERSION_MAJOR)
-#define PACKETIZER_ENABLE_STREAM
+    #define PACKETIZER_ENABLE_STREAM
 #endif
 
 #ifdef PACKETIZER_DISABLE_STL
-
-#include "util/ArxRingBuffer.h"
-
+    #include "util/ArxRingBuffer.h"
 #else
-
-#include <vector>
-#include <deque>
-#include <map>
-#include <functional>
-
+    #include <vector>
+    #include <deque>
+    #include <map>
+    #include <functional>
+    #include <memory>
 #endif // PACKETIZER_DISABLE_STL
 
+#ifdef PACKETIZER_ENABLE_STREAM
+#ifdef ARDUINO
+    #define PACKETIZER_STREAM_WRITE(stream, data, size) stream.write(data, size);
+#elif defined(OF_VERSION_MAJOR)
+    #define PACKETIZER_STREAM_WRITE(stream, data, size) stream.writeBytes(data, size);
+#endif
+#endif // PACKETIZER_ENABLE_STREAM
+
 #ifdef TEENSYDUINO
-#include "util/TeensyDirtySTLErrorSolution.h"
+    #include "util/TeensyDirtySTLErrorSolution.h"
 #endif
 
 #include "util/CRCx/CRCx.h"
@@ -205,14 +210,6 @@ namespace packetizer {
 
 #endif // PACKETIZER_DISABLE_STL
 
-#ifdef PACKETIZER_ENABLE_STREAM
-#ifdef ARDUINO
-        using StreamType = Stream;
-#elif defined (OF_VERSION_MAJOR)
-        using StreamType = ofSerial;
-#endif
-#endif
-
         static constexpr uint8_t FINISH_BYTE {START_BYTE + 1};
         static constexpr uint8_t ESCAPE_BYTE {START_BYTE + 2};
         static constexpr uint8_t ESCAPE_MASK {0x20};
@@ -227,17 +224,15 @@ namespace packetizer {
 
         uint32_t err_count {0};
 
-#ifdef PACKETIZER_ENABLE_STREAM
-        StreamType* stream {nullptr};
-#endif
-
     public:
 
+#ifdef PACKETIZER_DISABLE_STL
+        using Ref = Decoder_<N_PACKET_QUEUE_SIZE, START_BYTE>*;
+#else
+        using Ref = std::shared_ptr<Decoder_<N_PACKET_QUEUE_SIZE, START_BYTE>>;
+#endif
         using CallbackType = callback_t;
 
-#ifdef PACKETIZER_ENABLE_STREAM
-        void attach(StreamType& s) { stream = &s; }
-#endif
 
         void subscribe(const uint8_t index, const callback_t& func)
         {
@@ -273,20 +268,6 @@ namespace packetizer {
             callbacks.erase(index);
 #endif // PACKETIZER_DISABLE_STL
         }
-
-#ifdef PACKETIZER_ENABLE_STREAM
-        void parse(bool b_exec_cb = true)
-        {
-            if (stream == nullptr) return;
-
-            while (const int size = stream->available())
-            {
-                uint8_t data[size];
-                stream->readBytes((char*)data, size);
-                feed(data, size, b_exec_cb);
-            }
-        }
-#endif // PACKETIZER_ENABLE_STREAM
 
         void feed(const uint8_t* const data, const size_t size, bool b_exec_cb = true)
         {
@@ -482,11 +463,7 @@ namespace packetizer {
     inline void send(StreamType& stream, const uint8_t index, const uint8_t* data, const uint8_t size)
     {
         const auto& packet = encode(index, data, size);
-#ifdef ARDUINO
-        stream.write(packet.data(), packet.size());
-#elif defined(OF_VERSION_MAJOR)
-        stream.writeBytes(packet.data(), packet.size());
-#endif
+        PACKETIZER_STREAM_WRITE(stream, packet.data(), packet.size());
     }
 
     template <typename StreamType, typename ...Rest>
@@ -497,11 +474,86 @@ namespace packetizer {
 #else
         const auto& packet = encode(index, first, std::forward<Rest>(args)...);
 #endif
+        PACKETIZER_STREAM_WRITE(stream, packet.data(), packet.size());
+    }
+
+#endif // PACKETIZER_ENABLE_STREAM
+
+
+    template <typename StreamType>
+    class DecodeManager_
+    {
+        DecodeManager_() {}
+        DecodeManager_(const DecodeManager_&) = delete;
+        DecodeManager_& operator=(const DecodeManager_&) = delete;
+
+        std::map<StreamType*, Decoder::Ref> decoders;
+
+    public:
+
+        using DecoderMap = std::map<StreamType*, Decoder::Ref>;
+
+        static DecodeManager_& getInstance()
+        {
+            static DecodeManager_ m;
+            return m;
+        }
+
+        Decoder::Ref subscribe(const StreamType& stream, const uint8_t index, const Decoder::CallbackType& func)
+        {
+            auto decoder = getDecoderRef(stream);
+            decoder->subscribe(index, func);
+            return decoder;
+        }
+
+        Decoder::Ref getDecoderRef(const StreamType& stream)
+        {
+            StreamType* s = (StreamType*)&stream;
+            if (decoders.find(s) == decoders.end())
+                decoders.insert(std::make_pair(s, std::make_shared<Decoder>()));
+            return decoders[s];
+        }
+
+        const DecoderMap& getDecoderMap() const
+        {
+            return decoders;
+        }
+
+        DecoderMap& getDecoderMap()
+        {
+            return decoders;
+        }
+
+    };
+
+#ifdef PACKETIZER_ENABLE_STREAM
 #ifdef ARDUINO
-        stream.write(packet.data(), packet.size());
-#elif defined(OF_VERSION_MAJOR)
-        stream.writeBytes(packet.data(), packet.size());
+    using StreamType = Stream;
+#elif defined (OF_VERSION_MAJOR)
+    using StreamType = ofSerial;
 #endif
+    using DecodeManager = DecodeManager_<StreamType>;
+
+    template <typename StreamType>
+    Decoder::Ref subscribe(const StreamType& stream, uint8_t index, const Decoder::CallbackType& func)
+    {
+        auto decoder = DecodeManager::getInstance().getDecoderRef(stream);
+        decoder->subscribe(index, func);
+        return decoder;
+    }
+
+    void parse(bool b_exec_cb = true)
+    {
+        auto& decoders = DecodeManager::getInstance().getDecoderMap();
+        for (auto& d : decoders)
+        {
+            while (const int size = d.first->available())
+            {
+                uint8_t data[size];
+                d.first->readBytes((char*)data, size);
+                d.second->feed(data, size, b_exec_cb);
+            }
+        }
     }
 
 #endif // PACKETIZER_ENABLE_STREAM
