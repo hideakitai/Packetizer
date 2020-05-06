@@ -433,7 +433,7 @@ For other STL enabled boards, only max packet queue size can be changed.
 Default value is 0 and not limited.
 
 ``` C++
-#define PACKETIZER_MAX_PACKET_QUEUE_SIZE 3 // default: 3
+#define PACKETIZER_MAX_PACKET_QUEUE_SIZE 3 // default: 0
 ```
 
 
