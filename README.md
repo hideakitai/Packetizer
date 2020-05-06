@@ -105,7 +105,7 @@ void setup()
 
     // set pre-defined callback
     decoder.subscribe(index_ext_cb, callback);
-    
+
     // set callback without index
     decoder.subscribe([](const uint8_t index, const uint8_t* data, const uint8_t size)
     {
@@ -132,6 +132,15 @@ void loop()
 ### Other Platforms
 
 None
+
+
+## Embedded Libraries
+
+- [ArxTypeTraits v0.1.0](https://github.com/hideakitai/ArxTypeTraits)
+- [ArxContainer v0.3.0](https://github.com/hideakitai/ArxContainer)
+- [ArxSmartPtr v0.1.0](https://github.com/hideakitai/ArxSmartPtr)
+- [CRCx v0.2.1](https://github.com/hideakitai/CRCx)
+- [TeensyDirtySTLErrorSolution v0.1.0](https://github.com/hideakitai/TeensyDirtySTLErrorSolution)
 
 
 ## Decoding Details
@@ -395,7 +404,8 @@ uint32_t errors() const
 
 ### Packet Data Storage Class Inside
 
-STL is used to handle packet data by default, but for following boards/architectures, [RingBuffer](https://github.com/hideakitai/RingBuffer) is used to storage packet data because STL can not be used for such boards.
+STL is used to handle packet data by default, but for following boards/architectures, [ArxContainer](https://github.com/hideakitai/ArxContainer) is used to store the packet data because STL can not be used for such boards.
+The storage size of such boards for packets, queue of packets, max packet binary size, and callbacks are limited.
 
 - AVR
 - megaAVR
@@ -405,48 +415,35 @@ STL is used to handle packet data by default, but for following boards/architect
 
 ### Memory Management (for NO-STL Boards)
 
-For such boards like Arduino Uno, you can manage required packet data size and buffering queue size.
-But you must use `Encoder`/`Decoder` object directly. Default packet data size is 64 byte, and buffering queue size is 2. Internally `Packetizer::Encoder` and `Packetizer::Decoder` is defined as:
+As mentioned above, for such boards like Arduino Uno, the storage sizes are limited.
+And of course you can manage them.
 
-``` c++
-using Encoder = Encoder_<64>;
-using Decoder = Decoder_<2, 64>;
+``` C++
+// max number of decoded packet queues
+#define PACKETIZER_MAX_PACKET_QUEUE_SIZE 1    // default: 2
+// max data bytes in packet
+#define PACKETIZER_MAX_PACKET_BINARY_SIZE 64  // default: 128
+// max number of callback for one stream
+#define PACKETIZER_MAX_CALLBACK_QUEUE_SIZE 16 // default: 8
+// max number of streams
+#define PACKETIZER_MAX_STREAM_MAP_SIZE 2      // default: 6
 ```
 
-So if you want to use them in larger or smaller data / queue size, define instances like:
+For other STL enabled boards, only max packet queue size can be changed.
+Default value is 0 and not limited.
 
-``` c++
-Packetzier::Encoder_<128> encoder;    // you can send 128 byte data
-Packetzier::Decoder_<4, 128> encoder; // you can receive 128 byte data and buffer 4 packets
-```
-
-Also you can manage the number of callback stacks (only for `Decoder`).
-
-``` c++
-Packetzier::Decoder_<4, 128, 16> packer; // 3rd argument is it. default is 8
+``` C++
+#define PACKETIZER_MAX_PACKET_QUEUE_SIZE 3 // default: 3
 ```
 
 
-### Memory Management (for STL Enabled Boards)
+### Packet Header
 
-For STL enabled boards, you can manage only packet buffering queue size.
-But it is disabled by default.
-Let me suppose that you add callbacks and you don't have other unpack method (like manually get data and `pop()` packets in `loop()`).
-In such case, if you receive unexpected `index` data in many times, packet queue becomes too large and memory shortage occurs.
-So internally we can limit the packet queue size only you have callbacks.
-If you receive correct `index` data, the packet will be handled in a moment.
-This is defined as:
+You can also change the packet header value.
+If you need it, define it like:
 
-``` c++
-using Decoder = Decoder_<0>;
-```
-
-So you can store packet data with no limit by default.
-You can manage queue size limit as follows.
-For example, to limit queue size = 4:
-
-``` c++
-Packetzier::Decoder_<4> decoder;
+``` C++
+#define PACKETIZER_START_BYTE 0xAB // default: 0xC1
 ```
 
 
