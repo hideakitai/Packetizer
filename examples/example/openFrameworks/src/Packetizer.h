@@ -15,8 +15,9 @@
 #endif
 
 #ifdef PACKETIZER_DISABLE_STL
-    #include "util/ArxTypeTraits.h"
-    #include "util/ArxRingBuffer.h"
+    #include "util/ArxTypeTraits/ArxTypeTraits.h"
+    #include "util/ArxContainer/ArxContainer.h"
+    #include "util/ArxSmartPtr/ArxSmartPtr.h"
 #else
     #include <vector>
     #include <deque>
@@ -34,7 +35,7 @@
 #endif // PACKETIZER_ENABLE_STREAM
 
 #ifdef TEENSYDUINO
-    #include "util/TeensyDirtySTLErrorSolution.h"
+    #include "util/TeensyDirtySTLErrorSolution/TeensyDirtySTLErrorSolution.h"
 #endif
 
 #include "util/CRCx/CRCx.h"
@@ -70,18 +71,22 @@ class Decoder;
     #define PACKETIZER_MAX_CALLBACK_QUEUE_SIZE 8
     #endif // PACKETIZER_MAX_CALLBACK_QUEUE_SIZE
 
+    #ifndef PACKETIZER_MAX_STREAM_MAP_SIZE
+    #define PACKETIZER_MAX_STREAM_MAP_SIZE 6
+    #endif // PACKETIZER_MAX_STREAM_MAP_SIZE
+
     using BinaryBuffer = arx::vector<uint8_t, PACKETIZER_MAX_PACKET_BINARY_SIZE>;
     using EscapeBuffer = arx::deque<uint8_t, PACKETIZER_MAX_PACKET_BINARY_SIZE>;
     using PacketQueue = arx::deque<BinaryBuffer, PACKETIZER_MAX_PACKET_QUEUE_SIZE>;
 
-    typedef void (*CallbackType)(const uint8_t* data, const uint8_t size);
-    typedef void (*CallbackAlwaysType)(const uint8_t index, const uint8_t* data, const uint8_t size);
+    using CallbackType = std::function<void(const uint8_t* data, const uint8_t size)>;
+    using CallbackAlwaysType = std::function<void(const uint8_t index, const uint8_t* data, const uint8_t size)>;
     using CallbackMap = arx::map<uint8_t, CallbackType, PACKETIZER_MAX_CALLBACK_QUEUE_SIZE>;
 
-    using DecoderRef = Decoder*;
+    using DecoderRef = arx::shared_ptr<Decoder>;
     using Packet = BinaryBuffer;
     #ifdef PACKETIZER_ENABLE_STREAM
-        using DecoderMap = arx::map<StreamType*, DecoderRef>;
+        using DecoderMap = arx::map<StreamType*, DecoderRef, PACKETIZER_MAX_STREAM_MAP_SIZE>;
     #endif
 
     using namespace arx;
@@ -146,7 +151,7 @@ class Decoder;
         void pack(const uint8_t first, Rest&& ...args)
         {
             append((uint8_t)first);
-            pack(forward<Rest>(args)...);
+            pack(std::forward<Rest>(args)...);
         }
         void pack()
         {
@@ -406,14 +411,14 @@ class Decoder;
     {
         auto& e = EncodeManager::getInstance().getEncoder();
         e.init(index);
-        return encode(e, first, forward<Rest>(args)...);
+        return encode(e, first, std::forward<Rest>(args)...);
     }
 
     template <typename ...Rest>
     inline const Packet& encode(Encoder& p, const uint8_t first, Rest&& ...args)
     {
         p << first;
-        return encode(p, forward<Rest>(args)...);
+        return encode(p, std::forward<Rest>(args)...);
     }
 
     inline const Packet& encode(Encoder& p)
@@ -434,7 +439,7 @@ class Decoder;
     template <typename ...Args>
     inline void send(StreamType& stream, const uint8_t index, const uint8_t first, Args&& ...args)
     {
-        const auto& packet = encode(index, first, forward<Args>(args)...);
+        const auto& packet = encode(index, first, std::forward<Args>(args)...);
         PACKETIZER_STREAM_WRITE(stream, packet.data(), packet.size());
     }
 
@@ -469,11 +474,24 @@ class Decoder;
             return decoder;
         }
 
+        void parse(bool b_exec_cb = true)
+        {
+            for (auto& d : decoders)
+            {
+                while (const int size = d.first->available())
+                {
+                    uint8_t data[size];
+                    d.first->readBytes((char*)data, size);
+                    d.second->feed(data, size, b_exec_cb);
+                }
+            }
+        }
+
         DecoderRef getDecoderRef(const StreamType& stream)
         {
             StreamType* s = (StreamType*)&stream;
             if (decoders.find(s) == decoders.end())
-                decoders.insert(make_pair(s, std::make_shared<Decoder>()));
+                decoders.insert(make_pair(s, make_shared<Decoder>()));
             return decoders[s];
         }
 
@@ -508,16 +526,7 @@ class Decoder;
 
     void parse(bool b_exec_cb = true)
     {
-        auto& decoders = DecodeManager::getInstance().getDecoderMap();
-        for (auto& d : decoders)
-        {
-            while (const int size = d.first->available())
-            {
-                uint8_t data[size];
-                d.first->readBytes((char*)data, size);
-                d.second->feed(data, size, b_exec_cb);
-            }
-        }
+        DecodeManager::getInstance().parse(b_exec_cb);
     }
 
 #endif // PACKETIZER_ENABLE_STREAM

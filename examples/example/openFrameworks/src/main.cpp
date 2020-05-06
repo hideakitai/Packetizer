@@ -5,7 +5,8 @@ class ofApp : public ofBaseApp
 {
 	ofSerial serial;
 	stringstream decoder_info;
-    string modem {"/dev/tty.usbmodem70085801"}; // <= change to your own board
+    string modem {"/dev/tty.usbmodem141301"}; // <= change to your own board
+//    string modem {"/dev/tty.usbmodem70085801"}; // <= change to your own board
 
 public:
 
@@ -21,7 +22,7 @@ public:
         {
             decoder_info << "packet has come! index = 0x" << std::hex << (int)index << endl;
         });
-        
+
 		Packetizer::subscribe(serial, 0x34, [&](const uint8_t* data, uint8_t size)
 		{
             decoder_info << std::dec;
@@ -29,7 +30,7 @@ public:
 			decoder_info << "data : ";
 			for (size_t i = 0; i < size; ++i) decoder_info << (int)data[i] << " ";
 			decoder_info << endl;
-			
+
 			if (size != 10) cout << "error 0xFF " << (int)size << endl;
 			if (size != 10) cout << "error 0xFF " << (int)data[3] << endl;
 		});
