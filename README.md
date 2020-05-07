@@ -136,7 +136,7 @@ None
 
 ## Embedded Libraries
 
-- [ArxTypeTraits v0.1.0](https://github.com/hideakitai/ArxTypeTraits)
+- [ArxTypeTraits v0.1.1](https://github.com/hideakitai/ArxTypeTraits)
 - [ArxContainer v0.3.0](https://github.com/hideakitai/ArxContainer)
 - [ArxSmartPtr v0.1.0](https://github.com/hideakitai/ArxSmartPtr)
 - [CRCx v0.2.1](https://github.com/hideakitai/CRCx)
