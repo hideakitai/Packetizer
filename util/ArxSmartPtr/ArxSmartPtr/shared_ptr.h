@@ -12,57 +12,60 @@ namespace arx {
 
     template<class T> class shared_ptr;
 
-    namespace detail
+    namespace sp
     {
-        typedef decltype(nullptr) sp_nullptr_t;
-
-        template<class T> T&& move(T& t) { return static_cast<T&&>(t); }
-
-        template<class T> T forward(T t) { return t; }
-
-        // sp_element, element_type
-
-        template<class T> struct sp_element { typedef T type; };
-        template<class T> struct sp_element<T[]> { typedef T type; };
-        template<class T, size_t N> struct sp_element<T[N]> { typedef T type; };
-
-        // sp_dereference, return type of operator*
-
-        template<class T> struct sp_dereference { typedef T& type; };
-        template<> struct sp_dereference<void> { typedef void type; };
-        template<> struct sp_dereference<void const> { typedef void type; };
-        template<> struct sp_dereference<void volatile> { typedef void type; };
-        template<> struct sp_dereference<void const volatile> { typedef void type; };
-        template<class T> struct sp_dereference<T[]> { typedef void type; };
-        template<class T, size_t N> struct sp_dereference<T[N]> { typedef void type; };
-
-        // sp_member_access, return type of operator->
-
-        template<class T> struct sp_member_access { typedef T* type; };
-        template<class T> struct sp_member_access<T[]> { typedef void type; };
-        template<class T, size_t N> struct sp_member_access<T[N]> { typedef void type; };
-
-        // sp_array_access, return type of operator[]
-
-        template<class T> struct sp_array_access { typedef void type; };
-        template<class T> struct sp_array_access<T[]> { typedef T& type; };
-        template<class T, size_t N> struct sp_array_access<T[N]> { typedef T& type; };
-
-        template <class T>
-        void swap(T& a, T& b)
+        namespace detail
         {
-            T t = move(a);
-            a = move(b);
-            b = move(t);
+            typedef decltype(nullptr) nullptr_t;
+
+            template<class T> T&& move(T& t) { return static_cast<T&&>(t); }
+
+            template<class T> T forward(T t) { return t; }
+
+            template <class T>
+            void swap(T& a, T& b)
+            {
+                T t = move(a);
+                a = move(b);
+                b = move(t);
+            }
         }
 
+        // element, element_type
+
+        template<class T> struct element { typedef T type; };
+        template<class T> struct element<T[]> { typedef T type; };
+        template<class T, size_t N> struct element<T[N]> { typedef T type; };
+
+        // dereference, return type of operator*
+
+        template<class T> struct dereference { typedef T& type; };
+        template<> struct dereference<void> { typedef void type; };
+        template<> struct dereference<void const> { typedef void type; };
+        template<> struct dereference<void volatile> { typedef void type; };
+        template<> struct dereference<void const volatile> { typedef void type; };
+        template<class T> struct dereference<T[]> { typedef void type; };
+        template<class T, size_t N> struct dereference<T[N]> { typedef void type; };
+
+        // member_access, return type of operator->
+
+        template<class T> struct member_access { typedef T* type; };
+        template<class T> struct member_access<T[]> { typedef void type; };
+        template<class T, size_t N> struct member_access<T[N]> { typedef void type; };
+
+        // array_access, return type of operator[]
+
+        template<class T> struct array_access { typedef void type; };
+        template<class T> struct array_access<T[]> { typedef T& type; };
+        template<class T, size_t N> struct array_access<T[N]> { typedef T& type; };
     }
+
 
     template<class T> class shared_ptr
     {
     public:
 
-        typedef typename detail::sp_element<T>::type element_type;
+        typedef typename sp::element<T>::type element_type;
 
     private:
 
@@ -79,7 +82,7 @@ namespace arx {
         {
         }
 
-        shared_ptr(detail::sp_nullptr_t) : px(0), pn()
+        shared_ptr(sp::detail::nullptr_t) : px(0), pn()
         {
         }
 
@@ -151,7 +154,7 @@ namespace arx {
             r.px = 0;
         }
 
-        shared_ptr& operator= (detail::sp_nullptr_t)
+        shared_ptr& operator= (sp::detail::nullptr_t)
         {
             this_type().swap(*this);
             return *this;
@@ -180,19 +183,19 @@ namespace arx {
             this_type(static_cast<shared_ptr<Y>&&>(r), p).swap(*this);
         }
 
-        typename detail::sp_dereference<T>::type operator* () const
+        typename sp::dereference<T>::type operator* () const
         {
             return *px;
         }
 
-        typename detail::sp_member_access<T>::type operator-> () const
+        typename sp::member_access<T>::type operator-> () const
         {
             return px;
         }
 
-        typename detail::sp_array_access<T>::type operator[] (size_t i) const
+        typename sp::array_access<T>::type operator[] (size_t i) const
         {
-            return static_cast<typename detail::sp_array_access<T>::type>(px[i]);
+            return static_cast<typename sp::array_access<T>::type>(px[i]);
         }
 
         element_type* get() const
@@ -222,7 +225,7 @@ namespace arx {
 
         void swap(shared_ptr& other)
         {
-            detail::swap(px, other.px);
+            sp::detail::swap(px, other.px);
             pn.swap(other.pn);
         }
 
@@ -243,25 +246,25 @@ namespace arx {
     }
 
     template<class T>
-    inline bool operator== (const shared_ptr<T>& p, detail::sp_nullptr_t)
+    inline bool operator== (const shared_ptr<T>& p, sp::detail::nullptr_t)
     {
         return p.get() == 0;
     }
 
     template<class T>
-    inline bool operator== (detail::sp_nullptr_t, const shared_ptr<T>& p )
+    inline bool operator== (sp::detail::nullptr_t, const shared_ptr<T>& p )
     {
         return p.get() == 0;
     }
 
     template<class T>
-    inline bool operator!= (const shared_ptr<T>& p, detail::sp_nullptr_t)
+    inline bool operator!= (const shared_ptr<T>& p, sp::detail::nullptr_t)
     {
         return p.get() != 0;
     }
 
     template<class T>
-    inline bool operator!= (detail::sp_nullptr_t, const shared_ptr<T>& p )
+    inline bool operator!= (sp::detail::nullptr_t, const shared_ptr<T>& p )
     {
         return p.get() != 0;
     }
@@ -319,7 +322,7 @@ namespace arx {
 
         typedef typename shared_ptr<T>::element_type E;
         E* p = static_cast<E*>(r.get());
-        return shared_ptr<T>(detail::move(r), p);
+        return shared_ptr<T>(sp::detail::move(r), p);
     }
 
     template<class T, class U>
@@ -329,7 +332,7 @@ namespace arx {
 
         typedef typename shared_ptr<T>::element_type E;
         E* p = const_cast<E*>(r.get());
-        return shared_ptr<T>(detail::move(r), p);
+        return shared_ptr<T>(sp::detail::move(r), p);
     }
 
     template<class T, class U>
@@ -339,7 +342,7 @@ namespace arx {
 
         typedef typename shared_ptr<T>::element_type E;
         E* p = dynamic_cast<E*>(r.get());
-        return p ? shared_ptr<T>(detail::move(r), p) : shared_ptr<T>();
+        return p ? shared_ptr<T>(sp::detail::move(r), p) : shared_ptr<T>();
     }
 
     template<class T, class U>
@@ -349,7 +352,7 @@ namespace arx {
 
         typedef typename shared_ptr<T>::element_type E;
         E* p = reinterpret_cast<E*>(r.get());
-        return shared_ptr<T>(detail::move(r), p);
+        return shared_ptr<T>(sp::detail::move(r), p);
     }
 
 
@@ -364,7 +367,7 @@ namespace arx {
     template<class T, class... Args>
     shared_ptr<T> make_shared(Args&&... args)
     {
-        return shared_ptr<T>(new T(detail::forward<Args>(args)...));
+        return shared_ptr<T>(new T(sp::detail::forward<Args>(args)...));
     }
 
 } // arx
