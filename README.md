@@ -421,11 +421,11 @@ But these default values are optimized for such boards, please be careful not to
 
 ``` C++
 // max number of decoded packet queues
-#define PACKETIZER_MAX_PACKET_QUEUE_SIZE     2
+#define PACKETIZER_MAX_PACKET_QUEUE_SIZE     1
 // max data bytes in packet
 #define PACKETIZER_MAX_PACKET_BINARY_SIZE  128
 // max number of callback for one stream
-#define PACKETIZER_MAX_CALLBACK_QUEUE_SIZE   8
+#define PACKETIZER_MAX_CALLBACK_QUEUE_SIZE   4
 // max number of streams
 #define PACKETIZER_MAX_STREAM_MAP_SIZE       2
 ```
