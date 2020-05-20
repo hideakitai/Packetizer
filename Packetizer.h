@@ -141,8 +141,7 @@ class Decoder;
         void init(const uint8_t index = 0)
         {
             buffer.clear();
-            append((uint8_t)START_BYTE, false);
-            append((uint8_t)index);
+            header(index);
         }
 
         // ---------- pack w/ variadic arguments ----------
@@ -185,6 +184,12 @@ class Decoder;
         const uint8_t* data() const { return buffer.data(); }
 
     private:
+
+        void header(const uint8_t index)
+        {
+            append((uint8_t)START_BYTE, false);
+            append((uint8_t)index);
+        }
 
         void append(const uint8_t* const data, const uint8_t size, const bool b_escape = true)
         {
