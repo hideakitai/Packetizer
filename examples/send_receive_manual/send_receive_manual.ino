@@ -5,9 +5,6 @@
 
 auto decoder = Packetizer::getDecoderRef();
 
-const uint8_t recv_index = 0x12;
-const uint8_t send_index = 0x34;
-
 void setup()
 {
     Serial.begin(115200);
