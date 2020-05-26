@@ -1,6 +1,6 @@
 # Packetizer
 
-binary data packetization encoder / decoder
+binary data packetization encoder / decoder based on COBS / SLIP encoding
 
 
 ## Feature
