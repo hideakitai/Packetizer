@@ -38,7 +38,7 @@ void setup()
 
             // indicate by led
             static bool b = false;
-            digitalWrite(LED_BUILTIN, b);
+            digitalWrite(13, b);
             b = !b;
         }
     );
