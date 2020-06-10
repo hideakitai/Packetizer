@@ -3,16 +3,9 @@
 Please install pip modules first.
 
 ```
-# create virtual environment
-python -m venv .venv
-
-# activate
-.venv\Scripts\activate.bat # Windows
-source .venv/bin/activate # macOS
-
 # install modules
-pip install cobs
-pip install sliplib==0.5.0
-pip install crc8
+pip install cobs -t Packetizer/python
+pip install sliplib==0.5.0 -t Packetizer/python
+pip install crc8 -t Packetizer/python
 ```
 
