@@ -1,6 +1,6 @@
 #define PACKETIZER_USE_INDEX_AS_DEFAULT
 
-// #define PACKETIZER_SET_DEFAULT_ENCODING_SLIP
+#define PACKETIZER_SET_DEFAULT_ENCODING_SLIP
 // #define PACKETIZER_USE_CRC_AS_DEFAULT
 
 #include <Packetizer.h>
@@ -27,14 +27,15 @@ void setup()
         {
             // create new packet which has same data (you can use same as std::vector)
             Packetizer::Packet packet;
-            for (size_t i = 0; i < size; ++i) packet.push_back(data[i]);
+            packet.index = index;
+            for (size_t i = 0; i < size; ++i) packet.data.push_back(data[i]);
 
             // add error count
             auto decoder = Packetizer::getDecoderRef(Serial);
-            packet.push_back((uint8_t)decoder->errors());
+            packet.data.push_back((uint8_t)decoder->errors());
 
             // send back to same index
-            Packetizer::send(Serial, index, packet.data(), packet.size());
+            Packetizer::send(Serial, packet.index, packet.data.data(), packet.data.size());
 
             // indicate by led
             static bool b = false;
