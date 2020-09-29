@@ -146,7 +146,6 @@ The storage size of such boards for packets, queue of packets, max packet binary
 - AVR
 - megaAVR
 - SAMD
-- SPRESENSE
 
 
 ### Memory Management (for NO-STL Boards)
