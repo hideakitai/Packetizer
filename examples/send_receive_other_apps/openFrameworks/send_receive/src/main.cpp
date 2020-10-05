@@ -2,7 +2,7 @@
 //#define PACKETIZER_USE_CRC_AS_DEFAULT
 
 #include "ofMain.h"
-#include "Packetizer.h"
+#include "ofxPacketizer.h"
 
 class ofApp : public ofBaseApp
 {

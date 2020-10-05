@@ -1,16 +1,16 @@
 #define PACKETIZER_USE_INDEX_AS_DEFAULT
 
-// #define PACKETIZER_SET_DEFAULT_ENCODING_SLIP
-// #define PACKETIZER_USE_CRC_AS_DEFAULT
+//#define PACKETIZER_SET_DEFAULT_ENCODING_SLIP
+//#define PACKETIZER_USE_CRC_AS_DEFAULT
 
 #include "ofMain.h"
-#include "Packetizer.h"
+#include "ofxPacketizer.h"
 
 class ofApp : public ofBaseApp
 {
     ofSerial serial;
     stringstream decoder_info;
-    string modem {"/dev/tty.usbmodem1423201"}; // <= change to your own board
+    string modem {"/dev/tty.SLAB_USBtoUART"}; // <= change to your own board
 
     const uint8_t send_index = 0x12;
     const uint8_t recv_index = 0x34;
