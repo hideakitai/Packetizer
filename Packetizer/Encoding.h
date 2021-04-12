@@ -205,10 +205,10 @@ namespace serial {
                             }
                         }
 
-                        return std::move(packet);
+                        return packet;
                     }
 
-                    virtual uint8_t marker() const { return MARKER_END; }
+                    virtual uint8_t marker() const override { return MARKER_END; }
                 };
 
             }  // namespace cobs
@@ -272,10 +272,10 @@ namespace serial {
                             }
                         }
 
-                        return std::move(packet);
+                        return packet;
                     }
 
-                    virtual uint8_t marker() const { return MARKER_END; }
+                    virtual uint8_t marker() const override { return MARKER_END; }
                 };
 
             }  // namespace slip
