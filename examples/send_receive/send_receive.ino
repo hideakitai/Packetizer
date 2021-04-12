@@ -3,20 +3,16 @@
 
 #include <Packetizer.h>
 
-void setup()
-{
+void setup() {
     Serial.begin(115200);
     delay(2000);
 
     Packetizer::subscribe(Serial,
-        [&](const uint8_t* data, const size_t size)
-        {
-            Packetizer::send(Serial, data, size); // send back packet
-        }
-    );
+        [&](const uint8_t* data, const size_t size) {
+            Packetizer::send(Serial, data, size);  // send back packet
+        });
 }
 
-void loop()
-{
+void loop() {
     Packetizer::parse();
 }

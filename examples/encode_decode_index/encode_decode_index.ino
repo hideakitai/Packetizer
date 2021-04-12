@@ -4,8 +4,7 @@
 
 #include <Packetizer.h>
 
-void setup()
-{
+void setup() {
     Serial.begin(115200);
     delay(2000);
 
@@ -14,10 +13,26 @@ void setup()
         const auto& p_buff = Packetizer::encode(p_in.index, p_in.data.data(), p_in.data.size());
         const auto& p_out = Packetizer::decode(p_buff.data.data(), p_buff.data.size());
 
-        Serial.print("index   = "); Serial.println(p_out.index, HEX);
-        Serial.print("input   = "); for (const auto& p : p_in.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("encoded = "); for (const auto& p : p_buff.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("decoded = "); for (const auto& p : p_out.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
+        Serial.print("index   = ");
+        Serial.println(p_out.index, HEX);
+        Serial.print("input   = ");
+        for (const auto& p : p_in.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("encoded = ");
+        for (const auto& p : p_buff.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("decoded = ");
+        for (const auto& p : p_out.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
 
         if (p_in.index != p_out.index || p_in.data != p_out.data)
             Serial.println("test 1 failed!");
@@ -29,10 +44,26 @@ void setup()
         const auto& p_buff = Packetizer::encode(p_in.index, p_in.data.data(), p_in.data.size());
         const auto& p_out = Packetizer::decode(p_buff.data.data(), p_buff.data.size());
 
-        Serial.print("index   = "); Serial.println(p_out.index, HEX);
-        Serial.print("input   = "); for (const auto& p : p_in.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("encoded = "); for (const auto& p : p_buff.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("decoded = "); for (const auto& p : p_out.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
+        Serial.print("index   = ");
+        Serial.println(p_out.index, HEX);
+        Serial.print("input   = ");
+        for (const auto& p : p_in.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("encoded = ");
+        for (const auto& p : p_buff.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("decoded = ");
+        for (const auto& p : p_out.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
 
         if (p_in.index != p_out.index || p_in.data != p_out.data)
             Serial.println("test 2 failed!");
@@ -44,10 +75,26 @@ void setup()
         const auto& p_buff = Packetizer::encode(p_in.index, p_in.data.data(), p_in.data.size());
         const auto& p_out = Packetizer::decode(p_buff.data.data(), p_buff.data.size());
 
-        Serial.print("index   = "); Serial.println(p_out.index, HEX);
-        Serial.print("input   = "); for (const auto& p : p_in.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("encoded = "); for (const auto& p : p_buff.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("decoded = "); for (const auto& p : p_out.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
+        Serial.print("index   = ");
+        Serial.println(p_out.index, HEX);
+        Serial.print("input   = ");
+        for (const auto& p : p_in.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("encoded = ");
+        for (const auto& p : p_buff.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("decoded = ");
+        for (const auto& p : p_out.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
 
         if (p_in.index != p_out.index || p_in.data != p_out.data)
             Serial.println("test 3 failed!");
@@ -59,10 +106,26 @@ void setup()
         const auto& p_buff = Packetizer::encode(p_in.index, p_in.data.data(), p_in.data.size());
         const auto& p_out = Packetizer::decode(p_buff.data.data(), p_buff.data.size());
 
-        Serial.print("index   = "); Serial.println(p_out.index, HEX);
-        Serial.print("input   = "); for (const auto& p : p_in.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("encoded = "); for (const auto& p : p_buff.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("decoded = "); for (const auto& p : p_out.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
+        Serial.print("index   = ");
+        Serial.println(p_out.index, HEX);
+        Serial.print("input   = ");
+        for (const auto& p : p_in.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("encoded = ");
+        for (const auto& p : p_buff.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("decoded = ");
+        for (const auto& p : p_out.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
 
         if (p_in.index != p_out.index || p_in.data != p_out.data)
             Serial.println("test 4 failed!");
@@ -74,10 +137,26 @@ void setup()
         const auto& p_buff = Packetizer::encode(p_in.index, p_in.data.data(), p_in.data.size());
         const auto& p_out = Packetizer::decode(p_buff.data.data(), p_buff.data.size());
 
-        Serial.print("index   = "); Serial.println(p_in.index, HEX);
-        Serial.print("input   = "); for (const auto& p : p_in.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("encoded = "); for (const auto& p : p_buff.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("decoded = "); for (const auto& p : p_out.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
+        Serial.print("index   = ");
+        Serial.println(p_in.index, HEX);
+        Serial.print("input   = ");
+        for (const auto& p : p_in.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("encoded = ");
+        for (const auto& p : p_buff.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("decoded = ");
+        for (const auto& p : p_out.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
 
         if (p_in.index != p_out.index || p_in.data != p_out.data)
             Serial.println("test 5 failed!");
@@ -89,10 +168,26 @@ void setup()
         const auto& p_buff = Packetizer::encode(p_in.index, p_in.data.data(), p_in.data.size());
         const auto& p_out = Packetizer::decode(p_buff.data.data(), p_buff.data.size());
 
-        Serial.print("index   = "); Serial.println(p_out.index, HEX);
-        Serial.print("input   = "); for (const auto& p : p_in.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("encoded = "); for (const auto& p : p_buff.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
-        Serial.print("decoded = "); for (const auto& p : p_out.data) { Serial.print(p, HEX); Serial.print(" "); } Serial.println();
+        Serial.print("index   = ");
+        Serial.println(p_out.index, HEX);
+        Serial.print("input   = ");
+        for (const auto& p : p_in.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("encoded = ");
+        for (const auto& p : p_buff.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("decoded = ");
+        for (const auto& p : p_out.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
 
         if (p_in.index != p_out.index || p_in.data != p_out.data)
             Serial.println("test 6 failed!");
@@ -101,6 +196,5 @@ void setup()
     }
 }
 
-void loop()
-{
+void loop() {
 }

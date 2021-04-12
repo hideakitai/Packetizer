@@ -8,23 +8,19 @@
 uint8_t recv_index = 0x12;
 uint8_t send_index = 0x34;
 
-void setup()
-{
+void setup() {
     Serial.begin(115200);
     delay(2000);
 
     // you can add callback depending on index value
     Packetizer::subscribe(Serial, recv_index,
-        [](const uint8_t* data, const size_t size)
-        {
-            Packetizer::send(Serial, send_index, data, size); // send back packet
-        }
-    );
+        [](const uint8_t* data, const size_t size) {
+            Packetizer::send(Serial, send_index, data, size);  // send back packet
+        });
 
     // you can also add callback called every time packet comes
     Packetizer::subscribe(Serial,
-        [](const uint8_t index, const uint8_t* data, const size_t size)
-        {
+        [](const uint8_t index, const uint8_t* data, const size_t size) {
             // create new packet which has same data (you can use same as std::vector)
             Packetizer::Packet packet;
             packet.index = index;
@@ -41,11 +37,9 @@ void setup()
             static bool b = false;
             digitalWrite(13, b);
             b = !b;
-        }
-    );
+        });
 }
 
-void loop()
-{
+void loop() {
     Packetizer::parse();
 }
