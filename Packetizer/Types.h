@@ -51,8 +51,9 @@ namespace serial {
         template <typename Encoding>
         using DecoderRef = std::shared_ptr<Decoder<Encoding>>;
 #ifdef PACKETIZER_ENABLE_STREAM
+        class DecodeTargetStream;
         template <typename Encoding>
-        using DecoderMap = std::map<StreamType*, DecoderRef<Encoding>>;
+        using DecoderMap = std::map<DecodeTargetStream, DecoderRef<Encoding>>;
 #endif
 
         using namespace std;
@@ -89,8 +90,9 @@ namespace serial {
         template <typename Encoding>
         using DecoderRef = std::shared_ptr<Decoder<Encoding>>;
 #ifdef PACKETIZER_ENABLE_STREAM
+        class DecodeTargetStream;
         template <typename Encoding>
-        using DecoderMap = arx::map<StreamType*, DecoderRef<Encoding>, PACKETIZER_MAX_STREAM_MAP_SIZE>;
+        using DecoderMap = arx::map<DecodeTargetStream, DecoderRef<Encoding>, PACKETIZER_MAX_STREAM_MAP_SIZE>;
 #endif
 
         using namespace arx;
@@ -101,6 +103,12 @@ namespace serial {
             struct COBS {};
             struct SLIP {};
         }  // namespace encoding
+
+        enum class DecodeTargetStreamType : uint8_t {
+            STREAM_SERIAL,
+            STREAM_UDP,
+            STREAM_TCP,
+        };
 
 #ifdef PACKETIZER_USE_INDEX_AS_DEFAULT
 #define PACKETIZER_DEFAULT_INDEX_SETTING true
@@ -118,6 +126,33 @@ namespace serial {
 #else
         using DefaultEncoding = encoding::COBS;
 #endif
+
+        namespace detail {
+            template <typename T>
+            std::integral_constant<bool, true> test(int T::*);
+            template <typename>
+            std::false_type test(...);
+        }  // namespace detail
+
+        template <typename T>
+        struct is_class : decltype(detail::test<T>(nullptr)) {};
+
+        namespace detail {
+            template <typename B>
+            std::true_type test_pre_ptr_convertible(const volatile B*);
+            template <typename>
+            std::false_type test_pre_ptr_convertible(const volatile void*);
+            template <typename, typename>
+            auto test_pre_is_base_of(...) -> std::true_type;
+            template <typename B, typename D>
+            auto test_pre_is_base_of(int) -> decltype(test_pre_ptr_convertible<B>(static_cast<D*>(nullptr)));
+        }  // namespace detail
+
+        template <typename Base, typename Derived>
+        struct is_base_of : integral_constant<
+                bool,
+                is_class<Base>::value &&
+                is_class<Derived>::value&& decltype(detail::test_pre_is_base_of<Base, Derived>(0))::value> {};
 
     }  // namespace packetizer
 }  // namespace serial

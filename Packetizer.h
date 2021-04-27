@@ -8,7 +8,36 @@
 
 #if defined(ARDUINO) || defined(OF_VERSION_MAJOR)
 #define PACKETIZER_ENABLE_STREAM
+#if defined(ESP_PLATFORM) || defined(ESP8266) || defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_MKRVIDOR4000) || defined(ARDUINO_SAMD_MKR1000) || defined(ARDUINO_SAMD_NANO_33_IOT)
+#define PACKETIZER_ENABLE_WIFI
 #endif
+#if defined(ESP_PLATFORM) || defined(ESP8266) || !defined(ARTNET_ENABLE_WIFI)
+#define PACKETIZER_ENABLE_ETHER
+#endif
+#endif
+
+#ifdef PACKETIZER_ENABLE_WIFI
+#ifdef ESP_PLATFORM
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#elif defined(ESP8266)
+#include <ESP8266WiFi.h>
+#include <WiFiUdp.h>
+#elif defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_MKRVIDOR4000) || defined(ARDUINO_SAMD_NANO_33_IOT)
+#include <SPI.h>
+#include <WiFiNINA.h>
+#include <WiFiUdp.h>
+#elif defined(ARDUINO_SAMD_MKR1000)
+#include <SPI.h>
+#include <WiFi101.h>
+#include <WiFiUdp.h>
+#endif
+#endif  // PACKETIZER_ENABLE_WIFI
+
+#ifdef PACKETIZER_ENABLE_ETHER
+#include <Ethernet.h>
+#include <EthernetUdp.h>
+#endif  // PACKETIZER_ENABLE_ETHER
 
 #include "Packetizer/util/ArxTypeTraits/ArxTypeTraits.h"
 #include "Packetizer/util/ArxContainer/ArxContainer.h"
@@ -231,6 +260,130 @@ namespace serial {
 
 #endif  // PACKETIZER_ENABLE_STREAM
 
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+        namespace detail {
+            template <typename Encoding = DefaultEncoding>
+            inline void send_impl(UDP* stream, const String& ip, const uint16_t port, const uint8_t* data, const size_t size) {
+                stream->beginPacket(ip.c_str(), port);
+                stream->write(data, size);
+                stream->endPacket();
+            }
+            template <typename Encoding = DefaultEncoding>
+            inline void send_impl(UDP* stream, const IPAddress& ip, const uint16_t port, const uint8_t* data, const size_t size) {
+                stream->beginPacket(ip, port);
+                stream->write(data, size);
+                stream->endPacket();
+            }
+            template <typename Encoding = DefaultEncoding>
+            inline void send_impl(Client* stream, const uint8_t* data, const size_t size) {
+                stream->write(data, size);
+            }
+        }  // namespace detail
+#endif     // defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+        template <typename Encoding = DefaultEncoding>
+        inline void send(UDP& stream, const String& ip, const uint16_t port, const uint8_t index, const uint8_t* data, const size_t size, const bool b_crc) {
+            const auto& packet = encode<Encoding>(index, data, size, b_crc);
+            detail::send_impl(&stream, ip, port, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(UDP& stream, const String& ip, const uint16_t port, const uint8_t index, const uint8_t* data, const size_t size) {
+            const auto& packet = encode<Encoding>(index, data, size);
+            detail::send_impl(&stream, ip, port, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(UDP& stream, const String& ip, const uint16_t port, const uint8_t* data, const size_t size, const bool b_crc) {
+            const auto& packet = encode<Encoding>(data, size, b_crc);
+            detail::send_impl(&stream, ip, port, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(UDP& stream, const String& ip, const uint16_t port, const uint8_t* data, const size_t size) {
+            const auto& packet = encode<Encoding>(data, size);
+            detail::send_impl(&stream, ip, port, packet.data.data(), packet.data.size());
+        }
+
+        template <typename Encoding = DefaultEncoding>
+        inline void send(UDP& stream, const IPAddress& ip, const uint16_t port, const uint8_t index, const uint8_t* data, const size_t size, const bool b_crc) {
+            const auto& packet = encode<Encoding>(index, data, size, b_crc);
+            detail::send_impl(&stream, ip, port, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(UDP& stream, const IPAddress& ip, const uint16_t port, const uint8_t index, const uint8_t* data, const size_t size) {
+            const auto& packet = encode<Encoding>(index, data, size);
+            detail::send_impl(&stream, ip, port, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(UDP& stream, const IPAddress& ip, const uint16_t port, const uint8_t* data, const size_t size, const bool b_crc) {
+            const auto& packet = encode<Encoding>(data, size, b_crc);
+            detail::send_impl(&stream, ip, port, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(UDP& stream, const IPAddress& ip, const uint16_t port, const uint8_t* data, const size_t size) {
+            const auto& packet = encode<Encoding>(data, size);
+            detail::send_impl(&stream, ip, port, packet.data.data(), packet.data.size());
+        }
+
+        template <typename Encoding = DefaultEncoding>
+        inline void send(Client& stream, const uint8_t index, const uint8_t* data, const size_t size, const bool b_crc) {
+            const auto& packet = encode<Encoding>(index, data, size, b_crc);
+            detail::send_impl(&stream, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(Client& stream, const uint8_t index, const uint8_t* data, const size_t size) {
+            const auto& packet = encode<Encoding>(index, data, size);
+            detail::send_impl(&stream, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(Client& stream, const uint8_t* data, const size_t size, const bool b_crc) {
+            const auto& packet = encode<Encoding>(data, size, b_crc);
+            detail::send_impl(&stream, packet.data.data(), packet.data.size());
+        }
+        template <typename Encoding = DefaultEncoding>
+        inline void send(Client& stream, const uint8_t* data, const size_t size) {
+            const auto& packet = encode<Encoding>(data, size);
+            detail::send_impl(&stream, packet.data.data(), packet.data.size());
+        }
+#endif  // defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+
+#ifdef PACKETIZER_ENABLE_STREAM
+
+        struct DecodeTargetStream {
+            StreamType* stream;
+            DecodeTargetStreamType type;
+
+            DecodeTargetStream()
+            : stream(nullptr), type(DecodeTargetStreamType::STREAM_SERIAL) {}
+            DecodeTargetStream(const DecodeTargetStream& dest)
+            : stream(dest.stream), type(dest.type) {}
+            DecodeTargetStream(DecodeTargetStream&& dest)
+            : stream(std::move(dest.stream)), type(std::move(dest.type)) {}
+            DecodeTargetStream(const StreamType& stream, const DecodeTargetStreamType type)
+            : stream((StreamType*)&stream), type(type) {}
+
+            DecodeTargetStream& operator=(const DecodeTargetStream& dest) {
+                stream = dest.stream;
+                type = dest.type;
+                return *this;
+            }
+            DecodeTargetStream& operator=(DecodeTargetStream&& dest) {
+                stream = std::move(dest.stream);
+                type = std::move(dest.type);
+                return *this;
+            }
+            inline bool operator<(const DecodeTargetStream& rhs) const {
+                return (stream != rhs.stream) ? (stream < rhs.stream) : (type < rhs.type);
+            }
+            inline bool operator==(const DecodeTargetStream& rhs) const {
+                return (stream == rhs.stream) && (type == rhs.type);
+            }
+            inline bool operator!=(const DecodeTargetStream& rhs) const {
+                return !(*this == rhs);
+            }
+        };
+
+#endif  // PACKETIZER_ENABLE_STREAM
+
         template <typename Encoding = DefaultEncoding>
         class DecodeManager {
             DecodeManager() {}
@@ -255,9 +408,98 @@ namespace serial {
         private:
             DecoderMap<Encoding> decoders;
 
+            DecodeTargetStream getDecodeTargetStream(const StreamType& stream) {
+                DecodeTargetStream s;
+                s.stream = (StreamType*)&stream;
+                s.type = DecodeTargetStreamType::STREAM_SERIAL;
+                return s;
+            }
+
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+
+            DecodeTargetStream getDecodeTargetStream(const UDP& stream) {
+                DecodeTargetStream s;
+                s.stream = (StreamType*)&stream;
+                s.type = DecodeTargetStreamType::STREAM_UDP;
+                return s;
+            }
+            DecodeTargetStream getDecodeTargetStream(const Client& stream) {
+                DecodeTargetStream s;
+                s.stream = (StreamType*)&stream;
+                s.type = DecodeTargetStreamType::STREAM_TCP;
+                return s;
+            }
+
+#endif
+
+            size_t stream_available(StreamType* stream, const DecodeTargetStreamType type) const {
+                switch (type) {
+                    case DecodeTargetStreamType::STREAM_SERIAL:
+                        return stream_available(stream);
+                    case DecodeTargetStreamType::STREAM_UDP:
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+                        return stream_available(reinterpret_cast<UDP*>(stream));
+#else
+                        return 0;
+#endif
+                    case DecodeTargetStreamType::STREAM_TCP:
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+                        return stream_available(reinterpret_cast<Client*>(stream));
+#else
+                        return 0;
+#endif
+                    default:
+                        return 0;
+                }
+            }
+            size_t stream_available(StreamType* stream) const {
+                return stream->available();
+            }
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+            size_t stream_available(UDP* stream) const {
+                return stream->parsePacket();
+            }
+            size_t stream_available(Client* stream) const {
+                return stream->available();
+            }
+#endif
+
+            void stream_read_to(StreamType* stream, const DecodeTargetStreamType type, uint8_t* data, const size_t size) {
+                switch (type) {
+                    case DecodeTargetStreamType::STREAM_SERIAL:
+                        stream_read_to(stream, data, size);
+                        break;
+                    case DecodeTargetStreamType::STREAM_UDP:
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+                        stream_read_to(reinterpret_cast<UDP*>(stream), data, size);
+#endif
+                        break;
+                    case DecodeTargetStreamType::STREAM_TCP:
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+                        stream_read_to(reinterpret_cast<Client*>(stream), data, size);
+#endif
+                        break;
+                    default:
+                        break;
+                }
+            }
+            void stream_read_to(StreamType* stream, uint8_t* data, const size_t size) {
+                stream->readBytes((char*)data, size);
+            }
+#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+            void stream_read_to(UDP* stream, uint8_t* data, const size_t size) {
+                stream->read(data, size);
+            }
+            void stream_read_to(Client* stream, uint8_t* data, const size_t size) {
+                stream->readBytes(data, size);
+            }
+#endif
+
         public:
-            DecoderRef<Encoding> getDecoderRef(const StreamType& stream) {
-                StreamType* s = (StreamType*)&stream;
+            template <typename S>
+            auto getDecoderRef(const S& stream)
+                -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
+                auto s = getDecodeTargetStream(stream);
                 if (decoders.find(s) == decoders.end())
                     decoders.insert(make_pair(s, std::make_shared<Decoder<Encoding>>()));
                 return decoders[s];
@@ -274,10 +516,10 @@ namespace serial {
 
             void parse(const bool b_exec_cb = true) {
                 for (auto& d : decoders) {
-                    while (d.first->available() > 0) {
-                        const int size = d.first->available();
+                    const size_t size = stream_available(d.first.stream, d.first.type);
+                    if (size) {
                         uint8_t* data = new uint8_t[size];
-                        d.first->readBytes((char*)data, size);
+                        stream_read_to(d.first.stream, d.first.type, data, size);
                         d.second->feed(data, size, b_exec_cb);
                         delete[] data;
                     }
@@ -387,57 +629,64 @@ namespace serial {
 
 #ifdef PACKETIZER_ENABLE_STREAM
 
-        template <typename Encoding = DefaultEncoding>
-        inline DecoderRef<Encoding> options(const StreamType& stream, const bool b_index, const bool b_crc) {
+        template <typename S, typename Encoding = DefaultEncoding>
+        inline auto options(const S& stream, const bool b_index, const bool b_crc)
+            -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
             auto decoder = DecodeManager<Encoding>::getInstance().getDecoderRef(stream);
             decoder->indexing(b_index);
             decoder->verifying(b_crc);
             return decoder;
         }
 
-        template <typename Encoding = DefaultEncoding>
-        inline DecoderRef<Encoding> subscribe(const StreamType& stream, const CallbackType& func) {
+        template <typename S, typename Encoding = DefaultEncoding>
+        inline auto subscribe(const S& stream, const CallbackType& func)
+            -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
             auto decoder = DecodeManager<Encoding>::getInstance().getDecoderRef(stream);
             decoder->subscribe(func);
             return decoder;
         }
 
-        template <typename Encoding = DefaultEncoding>
-        inline DecoderRef<Encoding> subscribe(const StreamType& stream, const CallbackAlwaysType& func) {
+        template <typename S, typename Encoding = DefaultEncoding>
+        inline auto subscribe(const S& stream, const CallbackAlwaysType& func)
+            -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
             auto decoder = DecodeManager<Encoding>::getInstance().getDecoderRef(stream);
             decoder->subscribe(func);
             return decoder;
         }
 
-        template <typename Encoding = DefaultEncoding>
-        inline DecoderRef<Encoding> subscribe(const StreamType& stream, const uint8_t index, const CallbackType& func) {
+        template <typename S, typename Encoding = DefaultEncoding>
+        inline auto subscribe(const S& stream, const uint8_t index, const CallbackType& func)
+            -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
             auto decoder = DecodeManager<Encoding>::getInstance().getDecoderRef(stream);
             decoder->subscribe(index, func);
             return decoder;
         }
 
-        template <typename Encoding = DefaultEncoding>
-        inline DecoderRef<Encoding> unsubscribe(const StreamType& stream) {
+        template <typename S, typename Encoding = DefaultEncoding>
+        inline auto unsubscribe(const S& stream)
+            -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
             auto decoder = DecodeManager<Encoding>::getInstance().getDecoderRef(stream);
             decoder->unsubscribe();
             return decoder;
         }
 
-        template <typename Encoding = DefaultEncoding>
-        inline DecoderRef<Encoding> unsubscribe(const StreamType& stream, const uint8_t index) {
+        template <typename S, typename Encoding = DefaultEncoding>
+        inline auto unsubscribe(const S& stream, const uint8_t index)
+            -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
             auto decoder = DecodeManager<Encoding>::getInstance().getDecoderRef(stream);
             decoder->unsubscribe(index);
             return decoder;
         }
 
-        template <typename Encoding = DefaultEncoding>
-        inline void parse(bool b_exec_cb = true) {
-            DecodeManager<Encoding>::getInstance().parse(b_exec_cb);
+        template <typename S, typename Encoding = DefaultEncoding>
+        inline auto getDecoderRef(const S& stream)
+            -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
+            return DecodeManager<Encoding>::getInstance().getDecoderRef(stream);
         }
 
         template <typename Encoding = DefaultEncoding>
-        inline DecoderRef<Encoding> getDecoderRef(const StreamType& stream) {
-            return DecodeManager<Encoding>::getInstance().getDecoderRef(stream);
+        inline void parse(bool b_exec_cb = true) {
+            DecodeManager<Encoding>::getInstance().parse(b_exec_cb);
         }
 
 #endif  // PACKETIZER_ENABLE_STREAM
