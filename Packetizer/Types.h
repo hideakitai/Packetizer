@@ -156,7 +156,7 @@ namespace serial {
 
         template <typename Base, typename Derived>
         struct is_base_of
-        : integral_constant<
+        : std::integral_constant<
               bool,
               is_class<Base>::value && is_class<Derived>::value&& decltype(detail::test_pre_is_base_of<Base, Derived>(0))::value> {};
 
