@@ -18,11 +18,9 @@ namespace serial {
             void subscribe(const CallbackType& func) {
                 cb_no_index = func;
             }
-
             void subscribe(const CallbackAlwaysType& func) {
                 cb_always = func;
             }
-
             void subscribe(const uint8_t index, const CallbackType& func) {
                 callbacks.emplace(make_pair(index, func));
             }
@@ -33,7 +31,6 @@ namespace serial {
                 else
                     cb_no_index = nullptr;
             }
-
             void unsubscribe(uint8_t index) {
                 callbacks.erase(index);
             }
@@ -102,9 +99,6 @@ namespace serial {
             bool verifying() const { return decoder->verifying(); }
         };
 
-        template <typename Encoding>
-        using DecoderRef = std::shared_ptr<Decoder<Encoding>>;
-
 #ifdef PACKETIZER_ENABLE_STREAM
 
         struct DecodeTargetStream {
@@ -163,6 +157,42 @@ namespace serial {
             }
 
 #ifdef PACKETIZER_ENABLE_STREAM
+
+            template <typename S>
+            auto getDecoderRef(const S& stream)
+                -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
+                auto s = getDecodeTargetStream(stream);
+                if (decoders.find(s) == decoders.end())
+                    decoders.insert(make_pair(s, std::make_shared<Decoder<Encoding>>()));
+                return decoders[s];
+            }
+
+            void options(const bool b_index, const bool b_crc) {
+                decoder->indexing(b_index);
+                decoder->verifying(b_crc);
+                for (auto& d : decoders) {
+                    d.second->indexing(b_index);
+                    d.second->verifying(b_crc);
+                }
+            }
+
+            void parse(const bool b_exec_cb = true) {
+                for (auto& d : decoders) {
+                    const size_t size = stream_available(d.first.stream, d.first.type);
+                    if (size) {
+                        uint8_t* data = new uint8_t[size];
+                        stream_read_to(d.first.stream, d.first.type, data, size);
+                        d.second->feed(data, size, b_exec_cb);
+                        delete[] data;
+                    }
+                }
+            }
+
+            void reset() {
+                decoder->reset();
+                for (auto& d : decoders)
+                    d.second->reset();
+            }
 
         private:
             DecoderMap<Encoding> decoders;
@@ -253,43 +283,6 @@ namespace serial {
                 stream->readBytes(data, size);
             }
 #endif
-
-        public:
-            template <typename S>
-            auto getDecoderRef(const S& stream)
-                -> typename std::enable_if<is_base_of<StreamType, S>::value, DecoderRef<Encoding>>::type {
-                auto s = getDecodeTargetStream(stream);
-                if (decoders.find(s) == decoders.end())
-                    decoders.insert(make_pair(s, std::make_shared<Decoder<Encoding>>()));
-                return decoders[s];
-            }
-
-            void options(const bool b_index, const bool b_crc) {
-                decoder->indexing(b_index);
-                decoder->verifying(b_crc);
-                for (auto& d : decoders) {
-                    d.second->indexing(b_index);
-                    d.second->verifying(b_crc);
-                }
-            }
-
-            void parse(const bool b_exec_cb = true) {
-                for (auto& d : decoders) {
-                    const size_t size = stream_available(d.first.stream, d.first.type);
-                    if (size) {
-                        uint8_t* data = new uint8_t[size];
-                        stream_read_to(d.first.stream, d.first.type, data, size);
-                        d.second->feed(data, size, b_exec_cb);
-                        delete[] data;
-                    }
-                }
-            }
-
-            void reset() {
-                decoder->reset();
-                for (auto& d : decoders)
-                    d.second->reset();
-            }
 
 #endif  // PACKETIZER_ENABLE_STREAM
         };

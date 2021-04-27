@@ -29,7 +29,15 @@ namespace serial {
 #endif
 
         template <typename Encoding>
+        class Encoder;
+        template <typename Encoding>
         class Decoder;
+
+        enum class DecodeTargetStreamType : uint8_t {
+            STREAM_SERIAL,
+            STREAM_UDP,
+            STREAM_TCP,
+        };
 
 #if ARX_HAVE_LIBSTDCPLUSPLUS >= 201103L  // Have libstdc++11
 
@@ -48,6 +56,8 @@ namespace serial {
         using CallbackMap = std::map<uint8_t, CallbackType>;
         using CallbackAlwaysType = std::function<void(const uint8_t index, const uint8_t* data, const size_t size)>;
 
+        template <typename Encoding>
+        using EncoderRef = std::shared_ptr<Encoder<Encoding>>;
         template <typename Encoding>
         using DecoderRef = std::shared_ptr<Decoder<Encoding>>;
 #ifdef PACKETIZER_ENABLE_STREAM
@@ -88,6 +98,8 @@ namespace serial {
         using CallbackMap = arx::map<uint8_t, CallbackType, PACKETIZER_MAX_CALLBACK_QUEUE_SIZE>;
 
         template <typename Encoding>
+        using EncoderRef = std::shared_ptr<Encoder<Encoding>>;
+        template <typename Encoding>
         using DecoderRef = std::shared_ptr<Decoder<Encoding>>;
 #ifdef PACKETIZER_ENABLE_STREAM
         class DecodeTargetStream;
@@ -103,12 +115,6 @@ namespace serial {
             struct COBS {};
             struct SLIP {};
         }  // namespace encoding
-
-        enum class DecodeTargetStreamType : uint8_t {
-            STREAM_SERIAL,
-            STREAM_UDP,
-            STREAM_TCP,
-        };
 
 #ifdef PACKETIZER_USE_INDEX_AS_DEFAULT
 #define PACKETIZER_DEFAULT_INDEX_SETTING true

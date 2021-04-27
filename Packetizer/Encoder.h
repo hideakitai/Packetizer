@@ -33,9 +33,6 @@ namespace serial {
         };
 
         template <typename Encoding>
-        using EncoderRef = std::shared_ptr<Encoder<Encoding>>;
-
-        template <typename Encoding>
         class EncodeManager {
             EncodeManager()
             : encoder(std::make_shared<Encoder<Encoding>>()) {}
@@ -117,8 +114,6 @@ namespace serial {
             PACKETIZER_STREAM_WRITE(stream, packet.data.data(), packet.data.size());
         }
 
-#endif  // PACKETIZER_ENABLE_STREAM
-
 #if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
 
         namespace detail {
@@ -139,10 +134,6 @@ namespace serial {
                 stream->write(data, size);
             }
         }  // namespace detail
-
-#endif  // defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
-
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
 
         template <typename Encoding = DefaultEncoding>
         inline void send(UDP& stream, const String& ip, const uint16_t port, const uint8_t index, const uint8_t* data, const size_t size, const bool b_crc) {
@@ -208,6 +199,7 @@ namespace serial {
         }
 
 #endif  // defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#endif  // PACKETIZER_ENABLE_STREAM
 
     }  // namespace packetizer
 }  // namespace serial
