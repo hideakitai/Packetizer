@@ -120,6 +120,7 @@ To use with TCP, connect to host first. Everything else can be used in the same 
 
 ```C++
 #include <Packetizer.h>
+#include <WiFi.h>
 
 WiFiClient client;
 uint8_t index = 0x12;
@@ -158,6 +159,7 @@ To use with UDP, start client first. And also you should set the host and port w
 
 ```C++
 #include <Packetizer.h>
+#include <WiFi.h>
 
 WiFiUDP client;
 uint8_t index = 0x12;
