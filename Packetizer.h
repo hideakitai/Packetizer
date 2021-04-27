@@ -16,28 +16,11 @@
 #endif
 #endif
 
-#ifdef PACKETIZER_ENABLE_WIFI
-#ifdef ESP_PLATFORM
-#include <WiFi.h>
-#include <WiFiUdp.h>
-#elif defined(ESP8266)
-#include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
-#elif defined(ARDUINO_AVR_UNO_WIFI_REV2) || defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_MKRVIDOR4000) || defined(ARDUINO_SAMD_NANO_33_IOT)
-#include <SPI.h>
-#include <WiFiNINA.h>
-#include <WiFiUdp.h>
-#elif defined(ARDUINO_SAMD_MKR1000)
-#include <SPI.h>
-#include <WiFi101.h>
-#include <WiFiUdp.h>
+#if defined(PACKETIZER_ENABLE_ETHER) || defined(PACKETIZER_ENABLE_WIFI)
+#define PACKETIZER_ENABLE_NETWORK
+#include <UDP.h>
+#include <Client.h>
 #endif
-#endif  // PACKETIZER_ENABLE_WIFI
-
-#ifdef PACKETIZER_ENABLE_ETHER
-#include <Ethernet.h>
-#include <EthernetUdp.h>
-#endif  // PACKETIZER_ENABLE_ETHER
 
 #include "Packetizer/util/ArxTypeTraits/ArxTypeTraits.h"
 #include "Packetizer/util/ArxContainer/ArxContainer.h"

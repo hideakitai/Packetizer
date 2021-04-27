@@ -4,6 +4,7 @@
 #define PACKETIZER_USE_CRC_AS_DEFAULT
 
 #include <Packetizer.h>
+#include <Ethernet.h>
 
 uint8_t msg_index = 0x12;
 

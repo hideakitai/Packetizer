@@ -114,7 +114,7 @@ namespace serial {
             PACKETIZER_STREAM_WRITE(stream, packet.data.data(), packet.data.size());
         }
 
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#ifdef PACKETIZER_ENABLE_NETWORK
 
         namespace detail {
             template <typename Encoding = DefaultEncoding>
@@ -198,7 +198,7 @@ namespace serial {
             detail::send_impl(&stream, packet.data.data(), packet.data.size());
         }
 
-#endif  // defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#endif  // PACKETIZER_ENABLE_NETWORK
 #endif  // PACKETIZER_ENABLE_STREAM
 
     }  // namespace packetizer

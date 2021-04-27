@@ -204,7 +204,7 @@ namespace serial {
                 return s;
             }
 
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#ifdef PACKETIZER_ENABLE_NETWORK
 
             DecodeTargetStream getDecodeTargetStream(const UDP& stream) {
                 DecodeTargetStream s;
@@ -226,13 +226,13 @@ namespace serial {
                     case DecodeTargetStreamType::STREAM_SERIAL:
                         return stream_available(stream);
                     case DecodeTargetStreamType::STREAM_UDP:
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#ifdef PACKETIZER_ENABLE_NETWORK
                         return stream_available(reinterpret_cast<UDP*>(stream));
 #else
                         return 0;
 #endif
                     case DecodeTargetStreamType::STREAM_TCP:
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#ifdef PACKETIZER_ENABLE_NETWORK
                         return stream_available(reinterpret_cast<Client*>(stream));
 #else
                         return 0;
@@ -244,7 +244,7 @@ namespace serial {
             size_t stream_available(StreamType* stream) const {
                 return stream->available();
             }
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#ifdef PACKETIZER_ENABLE_NETWORK
             size_t stream_available(UDP* stream) const {
                 return stream->parsePacket();
             }
@@ -259,12 +259,12 @@ namespace serial {
                         stream_read_to(stream, data, size);
                         break;
                     case DecodeTargetStreamType::STREAM_UDP:
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#ifdef PACKETIZER_ENABLE_NETWORK
                         stream_read_to(reinterpret_cast<UDP*>(stream), data, size);
 #endif
                         break;
                     case DecodeTargetStreamType::STREAM_TCP:
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#ifdef PACKETIZER_ENABLE_NETWORK
                         stream_read_to(reinterpret_cast<Client*>(stream), data, size);
 #endif
                         break;
@@ -275,7 +275,7 @@ namespace serial {
             void stream_read_to(StreamType* stream, uint8_t* data, const size_t size) {
                 stream->readBytes((char*)data, size);
             }
-#if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#ifdef PACKETIZER_ENABLE_NETWORK
             void stream_read_to(UDP* stream, uint8_t* data, const size_t size) {
                 stream->read(data, size);
             }
