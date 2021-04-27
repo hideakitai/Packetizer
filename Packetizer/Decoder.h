@@ -454,5 +454,4 @@ namespace serial {
 }  // namespace serial
 }  // namespace ht
 
-
-#endif // HT_SERIAL_PACKETIZER_DECODER_H
+#endif  // HT_SERIAL_PACKETIZER_DECODER_H

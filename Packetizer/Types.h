@@ -149,10 +149,10 @@ namespace serial {
         }  // namespace detail
 
         template <typename Base, typename Derived>
-        struct is_base_of : integral_constant<
-                bool,
-                is_class<Base>::value &&
-                is_class<Derived>::value&& decltype(detail::test_pre_is_base_of<Base, Derived>(0))::value> {};
+        struct is_base_of
+        : integral_constant<
+              bool,
+              is_class<Base>::value && is_class<Derived>::value&& decltype(detail::test_pre_is_base_of<Base, Derived>(0))::value> {};
 
     }  // namespace packetizer
 }  // namespace serial

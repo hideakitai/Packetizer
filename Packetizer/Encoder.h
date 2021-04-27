@@ -140,7 +140,7 @@ namespace serial {
             }
         }  // namespace detail
 
-#endif     // defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
+#endif  // defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
 
 #if defined(PACKETIZER_ENABLE_WIFI) || defined(PACKETIZER_ENABLE_ETHER)
 
@@ -213,6 +213,4 @@ namespace serial {
 }  // namespace serial
 }  // namespace ht
 
-
-#endif // HT_SERIAL_PACKETIZER_ENCODER_H
-
+#endif  // HT_SERIAL_PACKETIZER_ENCODER_H
