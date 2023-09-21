@@ -40,7 +40,7 @@ If you use them, original data array is modified like:
 | ------ | ------- | ------ |
 | 1 byte | N bytes | 1 byte |
 
-CRC8 will be calcurated including index byte.
+CRC8 will be calcurated from `data` bytes (excluding index).
 After that, these byte arrays will be coverted to COBS / SLIP encoding.
 
 
