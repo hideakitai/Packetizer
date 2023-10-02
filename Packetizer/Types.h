@@ -6,9 +6,9 @@
 #include <Arduino.h>
 #endif
 
-#include "util/ArxTypeTraits/ArxTypeTraits.h"
-#include "util/ArxContainer/ArxContainer.h"
-#include "util/ArxSmartPtr/ArxSmartPtr.h"
+#include <ArxTypeTraits.h>
+#include <ArxContainer.h>
+#include <ArxSmartPtr.h>
 
 namespace arduino {
     namespace packetizer {

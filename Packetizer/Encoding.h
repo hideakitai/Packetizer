@@ -3,9 +3,9 @@
 #define HT_SERIAL_PACKETIZER_ENCODING_H
 
 #include "Types.h"
-#include "util/CRCx/CRCx.h"
-#include "util/ArxTypeTraits/ArxTypeTraits.h"
-#include "util/ArxSmartPtr/ArxSmartPtr.h"
+#include <CRCx.h>
+#include <ArxTypeTraits.h>
+#include <ArxSmartPtr.h>
 
 namespace arduino {
     namespace packetizer {

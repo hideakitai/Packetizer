@@ -24,9 +24,9 @@
 #include <Client.h>
 #endif
 
-#include "Packetizer/util/ArxTypeTraits/ArxTypeTraits.h"
-#include "Packetizer/util/ArxContainer/ArxContainer.h"
-#include "Packetizer/util/ArxSmartPtr/ArxSmartPtr.h"
+#include <ArxTypeTraits.h>
+#include <ArxContainer.h>
+#include <ArxSmartPtr.h>
 #include "Packetizer/Types.h"
 #include "Packetizer/Encoding.h"
 #include "Packetizer/Encoder.h"
