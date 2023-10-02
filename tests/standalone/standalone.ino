@@ -1,5 +1,12 @@
 #define TEST_NO_SERIAL
 
+#if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_MEGAAVR) || defined (ARDUINO_ARCH_SAM) || defined(ARDUINO_ARCH_SAMD)
+
+void setup() {}
+void loop() {}
+
+#else
+
 #include <Packetizer.h>
 #include <cassert>
 
@@ -1220,3 +1227,4 @@ void loop()
 {
 }
 
+#endif
