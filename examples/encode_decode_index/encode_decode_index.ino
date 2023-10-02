@@ -194,6 +194,37 @@ void setup() {
         else
             Serial.println("test 6 success!");
     }
+    {
+        Packetizer::Packet p_in {0x01, {0xC0, 0xC1, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE}};
+        const auto& p_buff = Packetizer::encode(p_in.index, p_in.data.data(), p_in.data.size());
+        const auto& p_out = Packetizer::decode(p_buff.data.data(), p_buff.data.size());
+
+        Serial.print("index   = ");
+        Serial.println(p_out.index, HEX);
+        Serial.print("input   = ");
+        for (const auto& p : p_in.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("encoded = ");
+        for (const auto& p : p_buff.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+        Serial.print("decoded = ");
+        for (const auto& p : p_out.data) {
+            Serial.print(p, HEX);
+            Serial.print(" ");
+        }
+        Serial.println();
+
+        if (p_in.index != p_out.index || p_in.data != p_out.data)
+            Serial.println("test 7 failed!");
+        else
+            Serial.println("test 7 success!");
+    }
 }
 
 void loop() {
