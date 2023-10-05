@@ -2,6 +2,13 @@
 
 binary data packetization encoder / decoder based on COBS / SLIP encoding
 
+#### NOTE (>= v0.8.0) : DEPENDENT LIBRARIES REMOVED
+
+If you have already installed this library, please follow:
+
+- Cloned from GitHub (manually): Please install dependent libraries manually
+- Installed from library manager: re-install this library from library manager
+  - Dependent libraries will be installed automatically
 
 ## Feature
 
