@@ -18,11 +18,13 @@
 #endif
 #endif
 
+#ifndef PACKETIZER_DISABLE_NETWORK
 #if defined(PACKETIZER_ENABLE_ETHER) || defined(PACKETIZER_ENABLE_WIFI)
 #define PACKETIZER_ENABLE_NETWORK
 #include <Udp.h>
 #include <Client.h>
 #endif
+#endif // PACKETIZER_DISABLE_NETWORK
 
 #include <ArxTypeTraits.h>
 #include <ArxContainer.h>
